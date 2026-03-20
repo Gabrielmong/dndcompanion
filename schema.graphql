@@ -1,0 +1,679 @@
+# ============================================================
+# TTRPG Companion App — GraphQL Schema
+# Apollo Server / TypeScript
+# ============================================================
+
+scalar JSON
+scalar Date
+scalar DateTime
+
+# ============================================================
+# ENUMS
+# ============================================================
+
+enum CharacterRole {
+  NPC
+  PLAYER
+  MONSTER
+  ALLY
+  VILLAIN
+  NEUTRAL
+}
+
+enum CharacterStatus {
+  ACTIVE
+  PENDING
+  DEAD
+  UNKNOWN
+  RESOLVED
+}
+
+enum ChapterStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+}
+
+enum DecisionStatus {
+  PENDING
+  ACTIVE
+  RESOLVED
+  SKIPPED
+}
+
+enum OutcomeType {
+  GOOD
+  BAD
+  NEUTRAL
+  VARIABLE
+}
+
+enum ItemType {
+  RELIC
+  KEY_ITEM
+  EQUIPMENT
+  CONSUMABLE
+  QUEST
+  PROP
+  ITEM
+}
+
+enum SessionStatus {
+  PLANNED
+  ACTIVE
+  COMPLETED
+}
+
+enum EventType {
+  DECISION_RESOLVED
+  ITEM_OBTAINED
+  ITEM_LOST
+  CHARACTER_STATUS_CHANGE
+  REPUTATION_CHANGE
+  COMBAT_START
+  COMBAT_END
+  NOTE
+  CUSTOM
+}
+
+enum MissionType {
+  MAIN
+  SECONDARY
+  OPTIONAL
+  HIDDEN
+}
+
+enum MissionStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  FAILED
+  SKIPPED
+}
+
+enum EncounterStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+}
+
+enum EncounterOutcome {
+  WIN
+  LOSS
+  FLEE
+  DRAW
+}
+
+# ============================================================
+# CORE TYPES
+# ============================================================
+
+type Campaign {
+  id: ID!
+  name: String!
+  system: String
+  description: String
+  yearInGame: String
+  playerCount: Int
+  coverImageUrl: String
+  settings: JSON
+
+  chapters: [Chapter!]!
+  characters: [Character!]!
+  factions: [Faction!]!
+  items: [Item!]!
+  decisions(status: DecisionStatus, chapterId: ID): [Decision!]!
+  sessions: [Session!]!
+  missions(chapterId: ID): [Mission!]!
+
+  # Computed
+  activeChapter: Chapter
+  currentSession: Session
+
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type Chapter {
+  id: ID!
+  campaign: Campaign!
+  name: String!
+  orderIndex: Int!
+  summary: String
+  status: ChapterStatus!
+  playerVisible: Boolean!
+
+  missions: [Mission!]!
+  decisions: [Decision!]!
+  characters: [Character!]!   # characters introduced in this chapter
+
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type Character {
+  id: ID!
+  campaign: Campaign!
+  name: String!
+  role: CharacterRole!
+  description: String
+  location: String
+  chapterIntroduced: Chapter
+
+  # Combat
+  hpMax: Int
+  hpCurrent: Int
+  armorClass: Int
+  speed: Int
+  stats: JSON
+  attacks: JSON
+  specialAbilities: JSON
+
+  # Narrative
+  status: CharacterStatus!
+  corruptionStage: Int!
+  corruptionMax: Int!
+  narrativeNotes: String
+
+  # Meta
+  miniPrinted: Boolean!
+  miniStlSource: String
+  miniSearchHint: String
+  portraitUrl: String
+  tags: [String!]!
+  extra: JSON
+
+  # Relations
+  heldItems: [Item!]!
+  decisionStates: [CharacterDecisionState!]!
+  sessionStates(sessionId: ID): [CharacterSessionState!]!
+
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type CharacterSessionState {
+  id: ID!
+  character: Character!
+  session: Session!
+  hpCurrent: Int
+  status: CharacterStatus
+  conditions: [String!]!
+  location: String
+  notes: String
+  createdAt: DateTime!
+}
+
+type Faction {
+  id: ID!
+  campaign: Campaign!
+  name: String!
+  description: String
+  reputation: Int!
+  repMin: Int!
+  repMax: Int!
+  color: String
+  icon: String
+  extra: JSON
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type Item {
+  id: ID!
+  campaign: Campaign!
+  name: String!
+  type: ItemType!
+  description: String
+  narrativeWeight: String
+  locationFound: String
+  chapterFound: Chapter
+  inPossession: Boolean!
+  holder: Character
+  requiredFor: String
+  discoveryRequires: [String!]!
+  extra: JSON
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type Decision {
+  id: ID!
+  campaign: Campaign!
+  chapter: Chapter
+  mission: Mission
+  missionName: String
+  question: String!
+  context: String
+  orderIndex: Int!
+  status: DecisionStatus!
+
+  branches: [DecisionBranch!]!
+  chosenBranch: DecisionBranch
+  resolvedAt: DateTime
+
+  # Multi-parent / multi-outcome linking
+  incomingLinks: [DecisionLink!]!
+  outgoingLinks: [DecisionLink!]!
+
+  extra: JSON
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type DecisionLink {
+  id: ID!
+  fromDecision: Decision!
+  fromBranch: DecisionBranch
+  toDecision: Decision!
+  createdAt: DateTime!
+}
+
+type DecisionBranch {
+  id: ID!
+  decision: Decision!
+  label: String!
+  description: String
+  consequence: String
+  outcomeType: OutcomeType!
+  orderIndex: Int!
+  outcomes: JSON             # structured outcomes array
+
+  characterStates: [CharacterDecisionState!]!
+}
+
+type CharacterDecisionState {
+  id: ID!
+  branch: DecisionBranch!
+  character: Character!
+  stateLabel: String
+  description: String!
+  statusChange: CharacterStatus
+  createdAt: DateTime!
+}
+
+type Session {
+  id: ID!
+  campaign: Campaign!
+  chapter: Chapter
+  sessionNumber: Int!
+  title: String
+  playedAt: Date
+  startedAt: DateTime
+  endedAt: DateTime
+  dmNotes: String
+  playerSummary: String
+  status: SessionStatus!
+
+  events: [SessionEvent!]!
+  characterStates: [CharacterSessionState!]!
+
+  # Computed
+  decisionsResolved: [Decision!]!
+  itemsObtained: [Item!]!
+  reputationChanges: [ReputationChange!]!
+
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type SessionEvent {
+  id: ID!
+  session: Session!
+  eventType: EventType!
+  description: String
+
+  decision: Decision
+  branch: DecisionBranch
+  character: Character
+  item: Item
+  faction: Faction
+  reputationDelta: Int
+  extra: JSON
+
+  createdAt: DateTime!
+}
+
+type Mission {
+  id: ID!
+  campaign: Campaign!
+  chapter: Chapter
+  name: String!
+  type: MissionType!
+  description: String
+  status: MissionStatus!
+  orderIndex: Int!
+  decisions: [Decision!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type Encounter {
+  id: ID!
+  campaign: Campaign!
+  name: String!
+  description: String
+  status: EncounterStatus!
+  round: Int!
+  currentTurnIndex: Int!
+  participants: [EncounterParticipant!]!
+  linkedDecision: Decision
+  outcomeDecision: Decision
+  outcomeType: EncounterOutcome
+  outcome: String
+  startedAt: DateTime
+  endedAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type EncounterParticipant {
+  id: ID!
+  encounter: Encounter!
+  character: Character
+  name: String!
+  isPlayer: Boolean!
+  initiative: Int!
+  hpMax: Int
+  hpCurrent: Int
+  armorClass: Int
+  conditions: [String!]!
+  isActive: Boolean!
+  killedByName: String
+  killedDescription: String
+  notes: String
+}
+
+# Computed helper type
+type ReputationChange {
+  faction: Faction!
+  delta: Int!
+  session: Session!
+}
+
+# ============================================================
+# QUERIES
+# ============================================================
+
+type Query {
+  # Campaigns
+  campaigns: [Campaign!]!
+  campaign(id: ID!): Campaign
+
+  # Characters
+  character(id: ID!): Character
+  characters(campaignId: ID!, role: CharacterRole, status: CharacterStatus, search: String): [Character!]!
+
+  # Decisions
+  decision(id: ID!): Decision
+  decisions(campaignId: ID!, chapterId: ID, status: DecisionStatus, missionId: ID): [Decision!]!
+  pendingDecisions(campaignId: ID!): [Decision!]!
+
+  # Sessions
+  session(id: ID!): Session
+  sessions(campaignId: ID!): [Session!]!
+  activeSession(campaignId: ID!): Session
+
+  # Items
+  items(campaignId: ID!, inPossession: Boolean, type: ItemType): [Item!]!
+
+  # Factions
+  factions(campaignId: ID!): [Faction!]!
+
+  # Missions
+  missions(campaignId: ID!, chapterId: ID, status: MissionStatus): [Mission!]!
+
+  # Encounters
+  encounters(campaignId: ID!, status: EncounterStatus): [Encounter!]!
+  encounter(id: ID!): Encounter
+  activeEncounter(campaignId: ID!): Encounter
+}
+
+# ============================================================
+# MUTATIONS
+# ============================================================
+
+type Mutation {
+  # Campaigns
+  createCampaign(input: CreateCampaignInput!): Campaign!
+  updateCampaign(id: ID!, input: UpdateCampaignInput!): Campaign!
+
+  # Chapters
+  createChapter(input: CreateChapterInput!): Chapter!
+  updateChapterStatus(id: ID!, status: ChapterStatus!): Chapter!
+
+  # Characters
+  createCharacter(input: CreateCharacterInput!): Character!
+  updateCharacter(id: ID!, input: UpdateCharacterInput!): Character!
+  updateCharacterHP(id: ID!, hpCurrent: Int!): Character!
+  updateCharacterStatus(id: ID!, status: CharacterStatus!): Character!
+  addCharacterCondition(characterId: ID!, sessionId: ID!, condition: String!): CharacterSessionState!
+  removeCharacterCondition(characterId: ID!, sessionId: ID!, condition: String!): CharacterSessionState!
+
+  # Decisions
+  createDecision(input: CreateDecisionInput!): Decision!
+  resolveDecision(id: ID!, branchId: ID!, sessionId: ID): Decision!
+  unresolveDecision(id: ID!): Decision!   # undo — for corrections during session
+  addDecisionLink(fromDecisionId: ID!, toDecisionId: ID!, fromBranchId: ID): DecisionLink!
+  removeDecisionLink(id: ID!): Boolean!
+
+  # Factions
+  createFaction(input: CreateFactionInput!): Faction!
+  updateFactionReputation(id: ID!, delta: Int!, sessionId: ID): Faction!
+
+  # Items
+  createItem(input: CreateItemInput!): Item!
+  updateItemPossession(id: ID!, inPossession: Boolean!, holderId: ID): Item!
+
+  # Sessions
+  createSession(input: CreateSessionInput!): Session!
+  startSession(id: ID!): Session!
+  endSession(id: ID!, playerSummary: String): Session!
+  addSessionNote(sessionId: ID!, note: String!): SessionEvent!
+
+  # Missions
+  createMission(input: CreateMissionInput!): Mission!
+  updateMissionStatus(id: ID!, status: MissionStatus!): Mission!
+
+  # Encounters
+  createEncounter(input: CreateEncounterInput!): Encounter!
+  updateEncounter(id: ID!, input: UpdateEncounterInput!): Encounter!
+  deleteEncounter(id: ID!): Boolean!
+  startEncounter(id: ID!): Encounter!
+  endEncounter(id: ID!, outcomeType: EncounterOutcome!, outcome: String): Encounter!
+  addParticipant(encounterId: ID!, input: CreateParticipantInput!): EncounterParticipant!
+  updateParticipant(id: ID!, input: UpdateParticipantInput!): EncounterParticipant!
+  removeParticipant(id: ID!): Boolean!
+  nextTurn(encounterId: ID!): Encounter!
+  prevTurn(encounterId: ID!): Encounter!
+}
+
+# ============================================================
+# SUBSCRIPTIONS (for real-time updates during session)
+# ============================================================
+
+type Subscription {
+  characterUpdated(campaignId: ID!): Character!
+  decisionResolved(campaignId: ID!): Decision!
+  reputationChanged(campaignId: ID!): Faction!
+  sessionEventAdded(sessionId: ID!): SessionEvent!
+}
+
+# ============================================================
+# INPUT TYPES
+# ============================================================
+
+input CreateCampaignInput {
+  name: String!
+  system: String
+  description: String
+  yearInGame: String
+  playerCount: Int
+  coverImageUrl: String
+  settings: JSON
+}
+
+input UpdateCampaignInput {
+  name: String
+  system: String
+  description: String
+  yearInGame: String
+  playerCount: Int
+  coverImageUrl: String
+  settings: JSON
+}
+
+input CreateChapterInput {
+  campaignId: ID!
+  name: String!
+  orderIndex: Int!
+  summary: String
+}
+
+input CreateCharacterInput {
+  campaignId: ID!
+  name: String!
+  role: CharacterRole
+  status: CharacterStatus
+  description: String
+  location: String
+  chapterIntroducedId: ID
+  hpMax: Int
+  hpCurrent: Int
+  armorClass: Int
+  speed: Int
+  stats: JSON
+  attacks: JSON
+  specialAbilities: JSON
+  narrativeNotes: String
+  corruptionStage: Int
+  corruptionMax: Int
+  miniPrinted: Boolean
+  miniStlSource: String
+  miniSearchHint: String
+  portraitUrl: String
+  tags: [String!]
+  extra: JSON
+}
+
+input UpdateCharacterInput {
+  name: String
+  role: CharacterRole
+  description: String
+  location: String
+  hpMax: Int
+  hpCurrent: Int
+  armorClass: Int
+  speed: Int
+  stats: JSON
+  attacks: JSON
+  specialAbilities: JSON
+  status: CharacterStatus
+  corruptionStage: Int
+  corruptionMax: Int
+  narrativeNotes: String
+  miniPrinted: Boolean
+  miniStlSource: String
+  miniSearchHint: String
+  tags: [String!]
+  extra: JSON
+}
+
+input CreateDecisionInput {
+  campaignId: ID!
+  chapterId: ID
+  missionId: ID
+  missionName: String
+  question: String!
+  context: String
+  orderIndex: Int
+  branches: [CreateBranchInput!]!
+}
+
+input CreateBranchInput {
+  label: String!
+  description: String
+  consequence: String
+  outcomeType: OutcomeType
+  orderIndex: Int
+  outcomes: JSON
+  characterStates: [CreateCharacterStateInput!]
+}
+
+input CreateCharacterStateInput {
+  characterId: ID!
+  stateLabel: String
+  description: String!
+  statusChange: CharacterStatus
+}
+
+input CreateFactionInput {
+  campaignId: ID!
+  name: String!
+  description: String
+  repMin: Int
+  repMax: Int
+  color: String
+  icon: String
+}
+
+input CreateItemInput {
+  campaignId: ID!
+  name: String!
+  type: ItemType
+  description: String
+  narrativeWeight: String
+  locationFound: String
+  chapterFoundId: ID
+  requiredFor: String
+  discoveryRequires: [String!]
+  extra: JSON
+}
+
+input CreateSessionInput {
+  campaignId: ID!
+  chapterId: ID
+  sessionNumber: Int!
+  title: String
+  playedAt: Date
+}
+
+input CreateEncounterInput {
+  campaignId: ID!
+  name: String!
+  description: String
+  linkedDecisionId: ID
+  outcomeDecisionId: ID
+}
+
+input UpdateEncounterInput {
+  name: String
+  description: String
+  linkedDecisionId: ID
+  outcomeDecisionId: ID
+  outcomeType: EncounterOutcome
+  outcome: String
+}
+
+input CreateParticipantInput {
+  characterId: ID
+  name: String!
+  isPlayer: Boolean
+  initiative: Int
+  hpMax: Int
+  hpCurrent: Int
+  armorClass: Int
+  notes: String
+}
+
+input UpdateParticipantInput {
+  initiative: Int
+  hpCurrent: Int
+  hpMax: Int
+  armorClass: Int
+  conditions: [String!]
+  isActive: Boolean
+  killedByName: String
+  killedDescription: String
+  notes: String
+}

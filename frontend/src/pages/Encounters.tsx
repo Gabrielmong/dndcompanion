@@ -45,6 +45,7 @@ type Encounter = {
   round: number; outcomeType?: string | null; outcome?: string | null
   linkedDecision?: { id: string; question: string } | null
   outcomeDecision?: { id: string; question: string } | null
+  linkedDecisionId?: string | null; outcomeDecisionId?: string | null
   participants: Array<{ id: string; name: string; isPlayer: boolean; isActive: boolean; hpCurrent?: number | null; hpMax?: number | null }>
   startedAt?: string | null; endedAt?: string | null; createdAt: string
 }

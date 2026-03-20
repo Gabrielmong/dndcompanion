@@ -49,7 +49,7 @@ type ImportType = 'manual' | 'upload' | 'url'
 type Player = {
   id: string; name: string; description?: string | null; status: string
   hpMax?: number | null; hpCurrent?: number | null; armorClass?: number | null
-  speed?: number | null; stats: Record<string, number>; extra: Record<string, unknown>; tags: string[]
+  speed?: number | null; stats?: Record<string, number>; extra: Record<string, unknown>; tags: string[]
 }
 
 type SheetExtra = ParsedCharacterSheet & {
