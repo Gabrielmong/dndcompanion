@@ -104,41 +104,6 @@ export default function PlayerView() {
         {/* Stats */}
         {stats && <PlayerStatsBar stats={stats} />}
 
-        {/* Sessions — timeline */}
-        {sessions.length > 0 && (
-          <Box sx={{ mb: 5 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-              <BookIcon sx={{ color: '#c8a44a' }} />
-              <Typography variant="h5">Campaign Journal</Typography>
-            </Box>
-            {sessions.map((s: { sessionNumber: number; title?: string | null; playedAt?: string | null; playerSummary?: string | null }) => (
-              <Card key={s.sessionNumber} sx={{ mb: 1.5, border: '1px solid rgba(200,164,74,0.15)' }}>
-                <CardContent sx={{ p: 2 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 0.75 }}>
-                    <Typography variant="h6" sx={{ fontSize: '1rem' }}>
-                      Session {s.sessionNumber}{s.title ? ` — ${s.title}` : ''}
-                    </Typography>
-                    {s.playedAt && (
-                      <Typography variant="caption" sx={{ color: '#786c5c', fontFamily: '"JetBrains Mono"', fontSize: '0.72rem' }}>
-                        {new Date(s.playedAt).toLocaleDateString()}
-                      </Typography>
-                    )}
-                  </Box>
-                  {s.playerSummary ? (
-                    <Typography variant="body2" sx={{ color: '#b4a48a', lineHeight: 1.7, whiteSpace: 'pre-line' }}>
-                      {s.playerSummary}
-                    </Typography>
-                  ) : (
-                    <Typography variant="caption" sx={{ color: '#786c5c', fontStyle: 'italic' }}>
-                      No summary recorded for this session.
-                    </Typography>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </Box>
-        )}
-
         <Grid container spacing={3}>
           {/* Items in possession */}
           {items.length > 0 && (
@@ -301,6 +266,41 @@ export default function PlayerView() {
             </Grid>
           )}
         </Grid>
+
+        {/* Sessions — timeline */}
+        {sessions.length > 0 && (
+          <Box sx={{ mt: 5 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+              <BookIcon sx={{ color: '#c8a44a' }} />
+              <Typography variant="h5">Campaign Journal</Typography>
+            </Box>
+            {sessions.map((s: { sessionNumber: number; title?: string | null; playedAt?: string | null; playerSummary?: string | null }) => (
+              <Card key={s.sessionNumber} sx={{ mb: 1.5, border: '1px solid rgba(200,164,74,0.15)' }}>
+                <CardContent sx={{ p: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 0.75 }}>
+                    <Typography variant="h6" sx={{ fontSize: '1rem' }}>
+                      Session {s.sessionNumber}{s.title ? ` — ${s.title}` : ''}
+                    </Typography>
+                    {s.playedAt && (
+                      <Typography variant="caption" sx={{ color: '#786c5c', fontFamily: '"JetBrains Mono"', fontSize: '0.72rem' }}>
+                        {new Date(s.playedAt).toLocaleDateString()}
+                      </Typography>
+                    )}
+                  </Box>
+                  {s.playerSummary ? (
+                    <Typography variant="body2" sx={{ color: '#b4a48a', lineHeight: 1.7, whiteSpace: 'pre-line' }}>
+                      {s.playerSummary}
+                    </Typography>
+                  ) : (
+                    <Typography variant="caption" sx={{ color: '#786c5c', fontStyle: 'italic' }}>
+                      No summary recorded for this session.
+                    </Typography>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </Box>
+        )}
 
         {/* Footer */}
         <Box sx={{ mt: 6, textAlign: 'center', borderTop: '1px solid rgba(120,108,92,0.2)', pt: 3 }}>

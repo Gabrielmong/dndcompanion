@@ -4,10 +4,12 @@ import {
   Box, Typography, Grid, Card, CardContent, Button, TextField,
   CircularProgress, Alert, List, ListItem, Chip, Dialog,
   DialogTitle, DialogContent, DialogActions, ToggleButtonGroup, ToggleButton,
-  MenuItem, Select, FormControl, InputLabel,
+  MenuItem, Select, FormControl, InputLabel, Collapse, IconButton,
 } from '@mui/material'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import StopIcon from '@mui/icons-material/Stop'
+import ExpandLessIcon from '@mui/icons-material/ExpandLess'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import NoteAddIcon from '@mui/icons-material/NoteAdd'
 import SaveIcon from '@mui/icons-material/Save'
 import PauseIcon from '@mui/icons-material/Pause'
@@ -83,6 +85,7 @@ function formatElapsed(ms: number) {
 export default function SessionActive() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const [charsCollapsed, setCharsCollapsed] = useState(false)
   const [note, setNote] = useState('')
   const [endDialogOpen, setEndDialogOpen] = useState(false)
   const [playerSummaryEnd, setPlayerSummaryEnd] = useState('')
@@ -294,7 +297,12 @@ export default function SessionActive() {
         {/* Characters */}
         <Grid item xs={12} lg={7}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
-            <Typography variant="h6" sx={{ color: '#c8a44a' }}>Characters</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Typography variant="h6" sx={{ color: '#c8a44a' }}>Characters</Typography>
+              <IconButton size="small" onClick={() => setCharsCollapsed((v) => !v)} sx={{ color: '#786c5c', '&:hover': { color: '#c8a44a' } }}>
+                {charsCollapsed ? <ExpandMoreIcon fontSize="small" /> : <ExpandLessIcon fontSize="small" />}
+              </IconButton>
+            </Box>
             <ToggleButtonGroup
               value={roleFilter}
               onChange={(_, v) => setRoleFilter(v)}
@@ -314,6 +322,7 @@ export default function SessionActive() {
             </ToggleButtonGroup>
           </Box>
 
+          <Collapse in={!charsCollapsed}>
           <Grid container spacing={1.5}>
             {filteredChars.map((c: { id: string; name: string; role: string; status: string; hpMax?: number | null; armorClass?: number | null; speed?: number | null }) => {
               const storeState = characterStates[c.id]
@@ -364,6 +373,7 @@ export default function SessionActive() {
               )
             })}
           </Grid>
+          </Collapse>
 
           {/* DM Notes + Player Summary — inline, save on blur */}
           <Box sx={{ mt: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>

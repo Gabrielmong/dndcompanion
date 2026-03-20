@@ -40,6 +40,7 @@ model Campaign {
   sessions      Session[]
   missions      Mission[]
   encounters    Encounter[]
+  wikiPages     WikiPage[]
   createdAt     DateTime    @default(now()) @map("created_at")
   updatedAt     DateTime    @updatedAt @map("updated_at")
 
@@ -153,6 +154,8 @@ model Item {
   inPossession      Boolean        @default(false) @map("in_possession")
   holderId          String?        @map("holder_id") @db.Uuid
   holder            Character?     @relation("ItemHolder", fields: [holderId], references: [id])
+  missionId         String?        @map("mission_id") @db.Uuid
+  mission           Mission?       @relation("MissionLoot", fields: [missionId], references: [id], onDelete: SetNull)
   requiredFor       String?        @map("required_for")
   discoveryRequires String[]       @default([]) @map("discovery_requires")
   extra             Json           @default("{}")
@@ -287,21 +290,36 @@ model SessionEvent {
 }
 
 model Mission {
-  id          String     @id @default(uuid()) @db.Uuid
-  campaignId  String     @map("campaign_id") @db.Uuid
-  campaign    Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  chapterId   String?    @map("chapter_id") @db.Uuid
-  chapter     Chapter?   @relation(fields: [chapterId], references: [id])
+  id          String       @id @default(uuid()) @db.Uuid
+  campaignId  String       @map("campaign_id") @db.Uuid
+  campaign    Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  chapterId   String?      @map("chapter_id") @db.Uuid
+  chapter     Chapter?     @relation(fields: [chapterId], references: [id])
   name        String
-  type        String     @default("main")
+  type        String       @default("main")
   description String?
-  status      String     @default("pending")
-  orderIndex  Int        @default(0) @map("order_index")
+  content     String?      @default("")
+  status      String       @default("pending")
+  orderIndex  Int          @default(0) @map("order_index")
   decisions   Decision[]
-  createdAt   DateTime   @default(now()) @map("created_at")
-  updatedAt   DateTime   @updatedAt @map("updated_at")
+  maps        MissionMap[]
+  items       Item[]       @relation("MissionLoot")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
 
   @@map("missions")
+}
+
+model MissionMap {
+  id        String   @id @default(uuid()) @db.Uuid
+  missionId String   @map("mission_id") @db.Uuid
+  mission   Mission  @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  name      String   @default("Map")
+  url       String
+  key       String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("mission_maps")
 }
 
 model Encounter {
@@ -349,4 +367,21 @@ model EncounterParticipant {
   updatedAt         DateTime   @updatedAt @map("updated_at")
 
   @@map("encounter_participants")
+}
+
+model WikiPage {
+  id         String     @id @default(uuid()) @db.Uuid
+  campaignId String     @map("campaign_id") @db.Uuid
+  campaign   Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  parentId   String?    @map("parent_id") @db.Uuid
+  parent     WikiPage?  @relation("WikiPageChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children   WikiPage[] @relation("WikiPageChildren")
+  title      String     @default("Untitled")
+  content    String?    @default("")
+  icon       String?    @default("📄")
+  orderIndex Int        @default(0) @map("order_index")
+  createdAt  DateTime   @default(now()) @map("created_at")
+  updatedAt  DateTime   @updatedAt @map("updated_at")
+
+  @@map("wiki_pages")
 }

@@ -10,6 +10,7 @@ import { authResolvers } from './auth'
 import { playerViewResolvers } from './playerView'
 import { encounterResolvers } from './encounter'
 import { campaignStatsResolvers } from './campaignStats'
+import { wikiResolvers } from './wiki'
 
 export const resolvers = {
   DateTime: DateTimeResolver,
@@ -28,6 +29,7 @@ export const resolvers = {
     ...authResolvers.Query,
     ...playerViewResolvers.Query,
     ...campaignStatsResolvers.Query,
+    ...wikiResolvers.Query,
   },
 
   Mutation: {
@@ -40,6 +42,7 @@ export const resolvers = {
     ...missionResolvers.Mutation,
     ...encounterResolvers.Mutation,
     ...authResolvers.Mutation,
+    ...wikiResolvers.Mutation,
   },
 
   Campaign: campaignResolvers.Campaign,
@@ -55,6 +58,7 @@ export const resolvers = {
   Faction: factionResolvers.Faction,
   Item: itemResolvers.Item,
   Mission: missionResolvers.Mission,
+  MissionMap: missionResolvers.MissionMap,
   Encounter: encounterResolvers.Encounter,
   EncounterParticipant: encounterResolvers.EncounterParticipant,
   User: authResolvers.User,

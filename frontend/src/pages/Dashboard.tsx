@@ -67,6 +67,14 @@ const START_SESSION = gql`
   }
 `
 
+const ACTIVE_MISSIONS = gql`
+  query ActiveMissions($campaignId: ID!) {
+    missions(campaignId: $campaignId) {
+      id name type status
+    }
+  }
+`
+
 const CAMPAIGN_STATS = gql`
   query CampaignStats($campaignId: ID!) {
     campaignStats(campaignId: $campaignId) {
@@ -94,11 +102,19 @@ export default function Dashboard() {
   const { data, loading, error, refetch } = useQuery(DASHBOARD, {
     variables: { campaignId },
     skip: !campaignId,
+    fetchPolicy: 'cache-and-network',
   })
 
   const { data: statsData } = useQuery(CAMPAIGN_STATS, {
     variables: { campaignId },
     skip: !campaignId,
+    fetchPolicy: 'cache-and-network',
+  })
+
+  const { data: missionsData } = useQuery(ACTIVE_MISSIONS, {
+    variables: { campaignId },
+    skip: !campaignId,
+    fetchPolicy: 'cache-and-network',
   })
 
   const [deleteChapter, { loading: deletingChapter }] = useMutation(DELETE_CHAPTER)
@@ -318,6 +334,53 @@ export default function Dashboard() {
               </Box>
             </Box>
           )}
+
+          {/* Active Missions */}
+          {(() => {
+            const allMissions: { id: string; name: string; type: string; status: string }[] = missionsData?.missions ?? []
+            const activeMissions = allMissions.filter(m => ['ACTIVE', 'PENDING'].includes(m.status))
+            if (activeMissions.length === 0) return null
+            return (
+              <Box sx={{ mb: 3 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                  <Typography variant="h6" sx={{ color: '#c8a44a' }}>Active Missions</Typography>
+                  <Button size="small" variant="text" onClick={() => navigate('/missions')} sx={{ color: '#786c5c', fontSize: '0.8rem' }}>
+                    View all →
+                  </Button>
+                </Box>
+                <Box component={motion.div} variants={staggerContainer} sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                  {activeMissions.map((m) => (
+                    <Box
+                      key={m.id}
+                      component={motion.div}
+                      variants={slideUp}
+                      onClick={() => navigate(`/missions?id=${m.id}`)}
+                      sx={{
+                        display: 'flex', alignItems: 'center', gap: 1.5,
+                        bgcolor: '#111009', borderRadius: 1, px: 1.5, py: 1,
+                        border: m.status === 'ACTIVE' ? '1px solid rgba(200,164,74,0.3)' : '1px solid rgba(120,108,92,0.2)',
+                        cursor: 'pointer', '&:hover': { borderColor: 'rgba(200,164,74,0.5)', bgcolor: '#151209' },
+                      }}
+                    >
+                      <Typography sx={{ fontSize: '0.9rem' }}>{m.type === 'MAIN' ? '🎯' : '⚔️'}</Typography>
+                      <Typography sx={{ fontSize: '0.85rem', color: m.status === 'ACTIVE' ? '#e6d8c0' : '#b4a48a', flex: 1 }}>
+                        {m.name}
+                      </Typography>
+                      <Chip
+                        label={m.status}
+                        size="small"
+                        sx={{
+                          height: 18, fontSize: '0.65rem',
+                          bgcolor: m.status === 'ACTIVE' ? 'rgba(200,164,74,0.15)' : 'rgba(120,108,92,0.15)',
+                          color: m.status === 'ACTIVE' ? '#c8a44a' : '#786c5c',
+                        }}
+                      />
+                    </Box>
+                  ))}
+                </Box>
+              </Box>
+            )
+          })()}
 
           {/* NPCs */}
           <Box sx={{ mb: 3 }}>

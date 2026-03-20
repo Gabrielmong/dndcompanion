@@ -110,6 +110,15 @@ const extensions = `
     orderIndex: Int
   }
 
+  type MissionMap {
+    id: ID!
+    missionId: ID!
+    name: String!
+    url: String!
+    key: String!
+    createdAt: DateTime!
+  }
+
   input UpdateChapterInput {
     name: String
     summary: String
@@ -134,14 +143,17 @@ const extensions = `
     requiredFor: String
     discoveryRequires: [String!]
     extra: JSON
+    missionId: ID
   }
 
   input UpdateMissionInput {
     name: String
     type: MissionType
     description: String
+    content: String
     status: MissionStatus
     orderIndex: Int
+    chapterId: ID
   }
 
   input UpdateSessionInput {
@@ -155,6 +167,7 @@ const extensions = `
   input UpdateDecisionInput {
     question: String
     context: String
+    missionId: ID
     missionName: String
     status: DecisionStatus
     orderIndex: Int
@@ -222,6 +235,48 @@ const extensions = `
     deleteItem(id: ID!): Boolean!
     deleteSession(id: ID!): Boolean!
     deleteMission(id: ID!): Boolean!
+
+    # Mission maps
+    addMissionMap(missionId: ID!, name: String!, url: String!, key: String!): MissionMap!
+    deleteMissionMap(id: ID!): Boolean!
+
+    # Wiki
+    createWikiPage(input: CreateWikiPageInput!): WikiPage!
+    updateWikiPage(id: ID!, input: UpdateWikiPageInput!): WikiPage!
+    deleteWikiPage(id: ID!): Boolean!
+  }
+
+  type WikiPage {
+    id: ID!
+    campaignId: ID!
+    parentId: ID
+    title: String!
+    content: String
+    icon: String
+    orderIndex: Int!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  input CreateWikiPageInput {
+    campaignId: ID!
+    parentId: ID
+    title: String
+    icon: String
+    orderIndex: Int
+  }
+
+  input UpdateWikiPageInput {
+    title: String
+    content: String
+    icon: String
+    parentId: ID
+    orderIndex: Int
+  }
+
+  extend type Query {
+    wikiPages(campaignId: ID!): [WikiPage!]!
+    wikiPage(id: ID!): WikiPage
   }
 `
 

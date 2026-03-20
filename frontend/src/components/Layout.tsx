@@ -28,6 +28,8 @@ import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment'
 import LogoutIcon from '@mui/icons-material/Logout'
 import CasinoIcon from '@mui/icons-material/Casino'
 import MenuIcon from '@mui/icons-material/Menu'
+import MenuBookIcon from '@mui/icons-material/MenuBook'
+import MapIcon from '@mui/icons-material/Map'
 import { useAuthStore } from '../store/auth'
 import { useCampaign } from '../context/campaign'
 import { version } from '../../package.json'
@@ -43,6 +45,8 @@ const navItems = [
   { to: '/factions', label: 'Factions', icon: <GroupsIcon fontSize="small" /> },
   { to: '/encounters', label: 'Encounters', icon: <LocalFireDepartmentIcon fontSize="small" /> },
   { to: '/players', label: 'Players', icon: <CasinoIcon fontSize="small" /> },
+  { to: '/wiki', label: 'Wiki', icon: <MenuBookIcon fontSize="small" /> },
+  { to: '/missions', label: 'Missions', icon: <MapIcon fontSize="small" /> },
 ]
 
 function DrawerContent({ onNavigate, hasAppBar }: { onNavigate?: () => void; hasAppBar?: boolean }) {
@@ -192,7 +196,7 @@ export default function Layout() {
       <Box component="main" sx={{
         flex: 1, overflow: 'auto',
         p: { xs: 2, md: 3 },
-        pt: { xs: '68px', md: 3 }, // account for mobile AppBar
+        pt: { xs: '52px', md: 3 }, // account for mobile AppBar
       }}>
         <AnimatePresence mode="wait" initial={false}>
           <motion.div

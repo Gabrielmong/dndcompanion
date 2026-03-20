@@ -343,9 +343,12 @@ type Mission {
   name: String!
   type: MissionType!
   description: String
+  content: String
   status: MissionStatus!
   orderIndex: Int!
   decisions: [Decision!]!
+  maps: [MissionMap!]!
+  items: [Item!]!
   createdAt: DateTime!
   updatedAt: DateTime!
 }

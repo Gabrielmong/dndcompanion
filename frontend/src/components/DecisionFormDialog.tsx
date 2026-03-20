@@ -4,7 +4,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Button, TextField, Select, MenuItem, FormControl, InputLabel,
   Grid, Box, Typography, IconButton, Divider,
-  useTheme, useMediaQuery,
+  useTheme, useMediaQuery, Autocomplete,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
@@ -16,6 +16,14 @@ const CHAPTERS = gql`
     campaign(id: $campaignId) {
       id
       chapters { id name orderIndex }
+    }
+  }
+`
+
+const MISSIONS_LIST = gql`
+  query DecisionFormMissions($campaignId: ID!) {
+    missions(campaignId: $campaignId) {
+      id name type status
     }
   }
 `
@@ -72,6 +80,7 @@ interface DecisionData {
   id?: string
   question?: string
   context?: string | null
+  missionId?: string | null
   missionName?: string | null
   status?: string
   chapter?: { id: string; name: string } | null
@@ -148,6 +157,7 @@ export default function DecisionFormDialog({ open, onClose, onSaved, decision }:
   const [context, setContext] = useState('')
   const handleContextChange = useCallback((html: string) => setContext(html), [])
   const [missionName, setMissionName] = useState('')
+  const [missionId, setMissionId] = useState<string | null>(null)
   const [chapterId, setChapterId] = useState('')
 
   const { data: chaptersData } = useQuery(CHAPTERS, {
@@ -156,6 +166,13 @@ export default function DecisionFormDialog({ open, onClose, onSaved, decision }:
   })
   const chapters: Array<{ id: string; name: string; orderIndex: number }> =
     (chaptersData?.campaign?.chapters ?? []).slice().sort((a: { orderIndex: number }, b: { orderIndex: number }) => a.orderIndex - b.orderIndex)
+
+  const { data: missionsData } = useQuery(MISSIONS_LIST, {
+    variables: { campaignId },
+    skip: !open || !campaignId,
+  })
+  const missionOptions: Array<{ id: string; name: string; type: string; status: string }> =
+    missionsData?.missions ?? []
 
   // Branches
   const [newBranches, setNewBranches] = useState<NewBranch[]>([defaultNewBranch(), defaultNewBranch()])
@@ -168,6 +185,7 @@ export default function DecisionFormDialog({ open, onClose, onSaved, decision }:
       setQuestion(decision?.question ?? '')
       setContext(decision?.context ?? '')
       setMissionName(decision?.missionName ?? '')
+      setMissionId(decision?.missionId ?? null)
       setChapterId(decision?.chapter?.id ?? '')
       setToDelete([])
       setAddedBranches([])
@@ -214,6 +232,7 @@ export default function DecisionFormDialog({ open, onClose, onSaved, decision }:
             question,
             context: context || undefined,
             missionName: missionName || undefined,
+            missionId: missionId || null,
             chapterId: chapterId || null,
           },
         },
@@ -262,6 +281,7 @@ export default function DecisionFormDialog({ open, onClose, onSaved, decision }:
             question,
             context: context || undefined,
             missionName: missionName || undefined,
+            missionId: missionId || undefined,
             chapterId: chapterId || undefined,
             branches: newBranches.filter((b) => b.label.trim()).map((b, i) => ({
               label: b.label,
@@ -292,7 +312,41 @@ export default function DecisionFormDialog({ open, onClose, onSaved, decision }:
               fullWidth size="small" required multiline rows={2} />
           </Grid>
           <Grid item xs={12} sm={6}>
-            <TextField label="Mission Name" value={missionName} onChange={(e) => setMissionName(e.target.value)} fullWidth size="small" />
+            <Autocomplete
+              freeSolo
+              options={missionOptions.map((m) => m.name)}
+              value={missionName}
+              onChange={(_, val) => {
+                const name = val ?? ''
+                setMissionName(name)
+                const match = missionOptions.find((m) => m.name === name)
+                setMissionId(match?.id ?? null)
+              }}
+              onInputChange={(_, val, reason) => {
+                setMissionName(val)
+                if (reason === 'input') setMissionId(null) // cleared when typing freely
+              }}
+              renderOption={(props, option) => {
+                const m = missionOptions.find((x) => x.name === option)
+                return (
+                  <Box component="li" {...props} sx={{ fontSize: '0.85rem' }}>
+                    <Typography component="span" sx={{ mr: 1 }}>{m?.type === 'MAIN' ? '🎯' : '⚔️'}</Typography>
+                    {option}
+                    {m && (
+                      <Typography component="span" sx={{ ml: 1, fontSize: '0.7rem', color: '#786c5c' }}>
+                        {m.status}
+                      </Typography>
+                    )}
+                  </Box>
+                )
+              }}
+              renderInput={(params) => (
+                <TextField {...params} label="Mission" size="small" fullWidth
+                  placeholder="Link to a mission…"
+                  InputLabelProps={{ shrink: true }}
+                />
+              )}
+            />
           </Grid>
           <Grid item xs={12} sm={6}>
             <FormControl size="small" fullWidth>
