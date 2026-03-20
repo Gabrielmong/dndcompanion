@@ -15,17 +15,13 @@ async function main() {
 
   const app = express()
 
-  app.use(
-    cors({
-      origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-      credentials: true,
-    })
-  )
-
-  app.use(express.json())
+  const corsOptions = cors<cors.CorsRequest>({
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    credentials: true,
+  })
 
   // PDF proxy — only allows D&D Beyond sheet-pdf URLs to prevent SSRF
-  app.post('/api/proxy-pdf', async (req, res) => {
+  app.post('/api/proxy-pdf', corsOptions, express.json(), async (req, res) => {
     const { url } = req.body ?? {}
     if (typeof url !== 'string') {
       res.status(400).json({ error: 'url is required' })
@@ -64,6 +60,8 @@ async function main() {
 
   app.use(
     '/graphql',
+    corsOptions,
+    express.json(),
     expressMiddleware(server, {
       context: async ({ req }) => {
         const token = req.headers.authorization?.replace('Bearer ', '') ?? ''
