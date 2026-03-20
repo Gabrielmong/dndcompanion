@@ -179,6 +179,8 @@ model Decision {
   chosenBranchId    String?          @map("chosen_branch_id") @db.Uuid
   chosenBranch      DecisionBranch?  @relation("ChosenBranch", fields: [chosenBranchId], references: [id])
   resolvedAt        DateTime?        @map("resolved_at")
+  positionX         Float?           @map("position_x")
+  positionY         Float?           @map("position_y")
   extra             Json             @default("{}")
   branches          DecisionBranch[] @relation("DecisionBranches")
   incomingLinks     DecisionLink[]   @relation("DecisionLinkTo")

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button,
   Grid, TextField, Typography, Box, Divider, Select, MenuItem,
-  FormControl, InputLabel,
+  FormControl, InputLabel, useTheme, useMediaQuery,
 } from '@mui/material'
 
 export interface PlayerFormValues {
@@ -83,6 +83,8 @@ interface Props {
 
 export default function PlayerFormDialog({ open, onClose, onSave, initial, title }: Props) {
   const [v, setV] = useState<PlayerFormValues>(BLANK)
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
 
   useEffect(() => {
     if (open) setV({ ...BLANK, ...initial })
@@ -94,7 +96,7 @@ export default function PlayerFormDialog({ open, onClose, onSave, initial, title
   const fieldSx = { size: 'small' as const, fullWidth: true }
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth fullScreen={isMobile}
       PaperProps={{ sx: { bgcolor: '#0f0d0a', border: '1px solid rgba(120,108,92,0.3)' } }}>
       <DialogTitle sx={{ color: '#e6d8c0', fontFamily: '"Cinzel", serif', fontSize: '1rem', pb: 1 }}>
         {title ?? 'New Player Character'}

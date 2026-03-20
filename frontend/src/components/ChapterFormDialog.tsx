@@ -3,6 +3,7 @@ import { useMutation, gql } from '@apollo/client'
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Button, TextField, Select, MenuItem, FormControl, InputLabel, Grid,
+  useTheme, useMediaQuery,
 } from '@mui/material'
 import { useCampaign } from '../context/campaign'
 
@@ -39,6 +40,8 @@ interface Props {
 export default function ChapterFormDialog({ open, onClose, onSaved, chapter, nextOrderIndex = 0 }: Props) {
   const { campaignId } = useCampaign()
   const isEdit = !!chapter?.id
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
 
   const [name, setName] = useState('')
   const [summary, setSummary] = useState('')
@@ -88,7 +91,7 @@ export default function ChapterFormDialog({ open, onClose, onSaved, chapter, nex
   }
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth fullScreen={isMobile}>
       <DialogTitle sx={{ color: '#e6d8c0', fontFamily: '"Cinzel", serif', fontSize: '1rem' }}>
         {isEdit ? 'Edit Chapter' : 'New Chapter'}
       </DialogTitle>

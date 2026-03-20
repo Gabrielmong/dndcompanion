@@ -98,7 +98,7 @@ export default function Items() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
         <Typography variant="h4">Items & Relics</Typography>
         <Button variant="contained" size="small" startIcon={<AddIcon />}
           onClick={() => { setEditItem(null); setFormOpen(true) }}>

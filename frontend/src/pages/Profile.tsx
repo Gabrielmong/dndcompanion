@@ -190,7 +190,7 @@ export default function Profile() {
         {/* Back */}
         <Box sx={{ mb: 3 }}>
           <Tooltip title="Back to campaigns">
-            <IconButton onClick={() => navigate('/')} sx={{ color: '#786c5c', '&:hover': { color: '#c8a44a' } }}>
+            <IconButton onClick={() => navigate(-1)} sx={{ color: '#786c5c', '&:hover': { color: '#c8a44a' } }}>
               <ArrowBackIcon />
             </IconButton>
           </Tooltip>

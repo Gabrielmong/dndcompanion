@@ -7,6 +7,7 @@ import CheckIcon from '@mui/icons-material/Check'
 export interface DecisionNodeData {
   id: string
   question: string
+  context?: string | null
   status: string
   missionName?: string | null
   chapterName?: string | null
@@ -45,7 +46,7 @@ const STATUS_BORDER: Record<string, string> = {
   SKIPPED: 'rgba(120,108,92,0.2)',
 }
 
-export default memo(function DecisionTreeNode({ data }: { data: DecisionNodeData }) {
+export default memo(function DecisionTreeNode({ data, selected }: { data: DecisionNodeData; selected?: boolean }) {
   const border = STATUS_BORDER[data.status] ?? 'rgba(120,108,92,0.3)'
   const isResolved = data.status === 'RESOLVED'
   const actColor = data.chapterColorIndex >= 0 ? ACT_COLORS[data.chapterColorIndex % ACT_COLORS.length] : null
@@ -55,13 +56,15 @@ export default memo(function DecisionTreeNode({ data }: { data: DecisionNodeData
       sx={{
         width: 260,
         bgcolor: '#111009',
-        border: `2px solid ${border}`,
+        border: `2px solid ${selected ? '#c8a44a' : border}`,
         borderRadius: 1.5,
         overflow: 'hidden',
-        boxShadow: isResolved ? `0 0 12px ${border}30` : undefined,
+        boxShadow: selected
+          ? '0 0 0 2px #c8a44a55, 0 0 16px #c8a44a30'
+          : isResolved ? `0 0 12px ${border}30` : undefined,
         opacity: data.status === 'SKIPPED' ? 0.5 : 1,
         // Left stripe for act/chapter color
-        borderLeft: actColor ? `4px solid ${actColor}` : `2px solid ${border}`,
+        borderLeft: actColor ? `4px solid ${selected ? '#c8a44a' : actColor}` : `2px solid ${selected ? '#c8a44a' : border}`,
       }}
     >
       {/* Source handle (right) */}

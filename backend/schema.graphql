@@ -256,6 +256,8 @@ type Decision {
   incomingLinks: [DecisionLink!]!
   outgoingLinks: [DecisionLink!]!
 
+  positionX: Float
+  positionY: Float
   extra: JSON
   createdAt: DateTime!
   updatedAt: DateTime!

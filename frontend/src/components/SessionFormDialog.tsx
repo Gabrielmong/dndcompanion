@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useMutation, gql } from '@apollo/client'
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
-  Button, TextField, Grid,
+  Button, TextField, Grid, useTheme, useMediaQuery,
 } from '@mui/material'
 import { useCampaign } from '../context/campaign'
 
@@ -39,6 +39,8 @@ interface Props {
 export default function SessionFormDialog({ open, onClose, onSaved, onCreated, session, nextSessionNumber = 1 }: Props) {
   const { campaignId } = useCampaign()
   const isEdit = !!session?.id
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
 
   const [sessionNumber, setSessionNumber] = useState('')
   const [title, setTitle] = useState('')
@@ -96,7 +98,7 @@ export default function SessionFormDialog({ open, onClose, onSaved, onCreated, s
   }
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth fullScreen={isMobile}>
       <DialogTitle sx={{ color: '#e6d8c0', fontFamily: '"Cinzel", serif', fontSize: '1rem' }}>
         {isEdit ? 'Edit Session' : 'New Session'}
       </DialogTitle>

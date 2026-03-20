@@ -1,12 +1,15 @@
 import { useMemo, useEffect, useCallback, useState, useRef } from 'react'
+import RichTextDisplay from './RichTextDisplay'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useQuery, useMutation, gql } from '@apollo/client'
 import ReactFlow, {
   Background,
   Controls,
   MiniMap,
+  Panel,
   useNodesState,
   useEdgesState,
+  useReactFlow,
   MarkerType,
   BackgroundVariant,
   type Connection,
@@ -19,12 +22,14 @@ import 'reactflow/dist/style.css'
 import {
   Box, CircularProgress, Alert, Typography, Dialog, DialogTitle, DialogContent,
   IconButton, Button, Divider, Chip, Radio, RadioGroup, FormControlLabel, Tooltip,
+  InputBase,
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
 import ReplayIcon from '@mui/icons-material/Replay'
 import LockIcon from '@mui/icons-material/Lock'
+import SearchIcon from '@mui/icons-material/Search'
 import { useCampaign } from '../context/campaign'
 import DecisionTreeNode from './DecisionTreeNode'
 import EncounterTreeNode from './EncounterTreeNode'
@@ -36,7 +41,7 @@ import { layoutDecisionGraph } from '../utils/decisionLayout'
 const ALL_DECISIONS = gql`
   query AllDecisionsTree($campaignId: ID!) {
     decisions(campaignId: $campaignId) {
-      id question context status missionName orderIndex
+      id question context status missionName orderIndex positionX positionY
       chapter { id name playerVisible }
       branches { id label description consequence outcomeType orderIndex }
       chosenBranch { id label }
@@ -78,6 +83,12 @@ const UNRESOLVE_DECISION = gql`
 const DELETE_DECISION = gql`
   mutation DeleteDecisionTree($id: ID!) {
     deleteDecision(id: $id)
+  }
+`
+
+const UPDATE_DECISION_POSITION = gql`
+  mutation UpdateDecisionPosition($id: ID!, $x: Float!, $y: Float!) {
+    updateDecisionPosition(id: $id, x: $x, y: $y)
   }
 `
 
@@ -127,6 +138,8 @@ interface RawDecision {
   status: string
   missionName?: string | null
   orderIndex: number
+  positionX?: number | null
+  positionY?: number | null
   chapter?: { id: string; name: string; playerVisible: boolean } | null
   branches: Array<{ id: string; label: string; description?: string | null; consequence?: string | null; outcomeType: string; orderIndex: number }>
   chosenBranch?: { id: string; label: string } | null
@@ -227,6 +240,7 @@ function buildGraph(decisions: RawDecision[], encounters: unknown[] = []) {
     data: {
       id: d.id,
       question: d.question,
+      context: d.context,
       status: d.status,
       missionName: d.missionName,
       chapterName: d.chapter?.name,
@@ -371,6 +385,84 @@ function loadLayout(campaignId: string | null): Record<string, { x: number; y: n
   }
 }
 
+function GraphSearch({ nodes }: { nodes: Node[] }) {
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<Node[]>([])
+  const { setCenter } = useReactFlow()
+
+  const handleChange = (value: string) => {
+    setQuery(value)
+    if (!value.trim()) { setResults([]); return }
+    const q = value.toLowerCase()
+    setResults(
+      nodes
+        .filter((n) => !n.id.startsWith('lane-') && !n.id.startsWith('enc-'))
+        .filter((n) => (n.data?.question as string ?? '').toLowerCase().includes(q))
+        .slice(0, 6)
+    )
+  }
+
+  const focusNode = (node: Node) => {
+    setCenter(node.position.x + 130, node.position.y + 60, { zoom: 1, duration: 500 })
+    setQuery('')
+    setResults([])
+  }
+
+  return (
+    <Box sx={{ position: 'relative', width: 260 }}>
+      <Box sx={{
+        display: 'flex', alignItems: 'center', gap: 0.75,
+        bgcolor: '#111009', border: '1px solid rgba(120,108,92,0.35)',
+        borderRadius: 1, px: 1, py: 0.5,
+        '&:focus-within': { borderColor: 'rgba(200,164,74,0.5)' },
+      }}>
+        <SearchIcon sx={{ fontSize: 15, color: '#786c5c', flexShrink: 0 }} />
+        <InputBase
+          value={query}
+          onChange={(e) => handleChange(e.target.value)}
+          placeholder="Search decisions…"
+          sx={{ fontSize: '0.78rem', color: '#c8b89a', flex: 1,
+            '& input::placeholder': { color: 'rgba(120,108,92,0.5)' } }}
+        />
+        {query && (
+          <IconButton size="small" onClick={() => { setQuery(''); setResults([]) }}
+            sx={{ p: 0.25, color: '#786c5c', '&:hover': { color: '#e6d8c0' } }}>
+            <CloseIcon sx={{ fontSize: 13 }} />
+          </IconButton>
+        )}
+      </Box>
+
+      {results.length > 0 && (
+        <Box sx={{
+          position: 'absolute', top: '100%', left: 0, right: 0, mt: 0.5, zIndex: 10,
+          bgcolor: '#111009', border: '1px solid rgba(120,108,92,0.35)', borderRadius: 1,
+          overflow: 'hidden',
+        }}>
+          {results.map((node) => (
+            <Box key={node.id} onClick={() => focusNode(node)}
+              sx={{
+                px: 1.25, py: 0.75, cursor: 'pointer',
+                borderBottom: '1px solid rgba(120,108,92,0.15)',
+                '&:last-child': { borderBottom: 'none' },
+                '&:hover': { bgcolor: 'rgba(200,164,74,0.06)' },
+              }}>
+              <Typography sx={{ fontSize: '0.75rem', color: '#c8b89a', lineHeight: 1.4,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {node.data?.question as string}
+              </Typography>
+              {node.data?.chapterName && (
+                <Typography sx={{ fontSize: '0.62rem', color: '#786c5c', fontFamily: '"JetBrains Mono"' }}>
+                  {node.data.chapterName as string}
+                </Typography>
+              )}
+            </Box>
+          ))}
+        </Box>
+      )}
+    </Box>
+  )
+}
+
 export default function DecisionTreeView() {
   const { campaignId } = useCampaign()
 
@@ -405,6 +497,8 @@ export default function DecisionTreeView() {
   const [deleteDecision, { loading: deleting }] = useMutation(DELETE_DECISION, {
     refetchQueries: ['AllDecisionsTree', 'Decisions', 'Dashboard'],
   })
+  const [updateDecisionPosition] = useMutation(UPDATE_DECISION_POSITION)
+  const positionSaveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   const onConnect = useCallback((params: Connection) => {
     if (!params.source || !params.target || params.source === params.target) return
@@ -448,6 +542,32 @@ export default function DecisionTreeView() {
     }
   }, [removeLink, updateEncounterLink])
 
+  // Node hover tooltip (context / DM notes)
+  const [nodeHover, setNodeHover] = useState<{ x: number; y: number; context: string } | null>(null)
+  const onNodeMouseEnter = useCallback<NodeMouseHandler>((evt, node) => {
+    const ctx = node.data?.context
+    if (ctx) setNodeHover({ x: evt.clientX, y: evt.clientY, context: ctx })
+  }, [])
+  const onNodeMouseMove = useCallback<NodeMouseHandler>((evt, node) => {
+    const ctx = node.data?.context
+    if (ctx) setNodeHover((prev) => prev ? { ...prev, x: evt.clientX, y: evt.clientY } : null)
+  }, [])
+  const onNodeMouseLeave = useCallback<NodeMouseHandler>(() => {
+    setNodeHover(null)
+  }, [])
+
+  // Edge hover tooltip
+  const [edgeHover, setEdgeHover] = useState<{ x: number; y: number } | null>(null)
+  const onEdgeMouseEnter = useCallback<EdgeMouseHandler>((evt) => {
+    setEdgeHover({ x: evt.clientX, y: evt.clientY })
+  }, [])
+  const onEdgeMouseMove = useCallback<EdgeMouseHandler>((evt) => {
+    setEdgeHover({ x: evt.clientX, y: evt.clientY })
+  }, [])
+  const onEdgeMouseLeave = useCallback<EdgeMouseHandler>(() => {
+    setEdgeHover(null)
+  }, [])
+
   // Node click state
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [editOpen, setEditOpen] = useState(false)
@@ -464,8 +584,9 @@ export default function DecisionTreeView() {
     if (selectedId) { setSelectedBranch(''); setConfirmDelete(false) }
   }, [selectedId])
 
-  const onNodeClick = useCallback<NodeMouseHandler>((_, node) => {
+  const onNodeClick = useCallback<NodeMouseHandler>((evt, node) => {
     if (node.id.startsWith('enc-') || node.id.startsWith('lane-')) return
+    if (evt.ctrlKey || evt.metaKey || evt.shiftKey) return // multi-select mode
     setSelectedId(node.id)
   }, [])
 
@@ -486,7 +607,15 @@ export default function DecisionTreeView() {
     const { nodes, edges } = buildGraph(data.decisions, encounterData?.encounters ?? [])
     const laid = layoutDecisionGraph(nodes, edges)
 
-    const saved = loadLayout(campaignId)
+    // Apply backend-saved positions, fall back to localStorage for legacy
+    const backendPositions: Record<string, { x: number; y: number }> = {}
+    for (const d of data.decisions as RawDecision[]) {
+      if (d.positionX != null && d.positionY != null) {
+        backendPositions[d.id] = { x: d.positionX, y: d.positionY }
+      }
+    }
+    const legacySaved = Object.keys(backendPositions).length === 0 ? loadLayout(campaignId) : null
+    const saved = Object.keys(backendPositions).length > 0 ? backendPositions : legacySaved
     if (saved) {
       laid.nodes = laid.nodes.map((n) => saved[n.id] ? { ...n, position: saved[n.id] } : n)
     }
@@ -520,6 +649,9 @@ export default function DecisionTreeView() {
       const saved = loadLayout(campaignId) ?? {}
       for (const id of newIds) saved[id] = pos
       localStorage.setItem(layoutKey(campaignId), JSON.stringify(saved))
+      for (const id of newIds) {
+        updateDecisionPosition({ variables: { id, x: pos.x, y: pos.y } })
+      }
 
       setNodes((current) => {
         const updated = current.map((n) => (newIds.includes(n.id) ? { ...n, position: pos } : n))
@@ -529,21 +661,34 @@ export default function DecisionTreeView() {
       })
     }
     knownIdsRef.current = currentIds
-  }, [data, campaignId, setNodes, toggleVisibility])
+  }, [data, campaignId, setNodes, toggleVisibility, updateDecisionPosition])
 
   // Save layout + recompute lane sizes on drag stop
   const handleNodesChange = useCallback((changes: Parameters<typeof onNodesChange>[0]) => {
     onNodesChange(changes)
-    const hasDragEnd = changes.some((c) => c.type === 'position' && !c.dragging)
-    if (hasDragEnd) {
+    const dragEndIds = changes
+      .filter((c): c is Extract<typeof c, { type: 'position' }> => c.type === 'position' && !c.dragging)
+      .map((c) => c.id)
+      .filter((id) => !id.startsWith('lane-') && !id.startsWith('enc-'))
+    if (dragEndIds.length > 0) {
       setNodes((current) => {
         const content = current.filter((n) => !n.id.startsWith('lane-'))
-        saveLayout(campaignId, content)
+        saveLayout(campaignId, content) // keep localStorage as cache
         const lanes = computeLaneSeparators(decisionsRef.current, content, toggleVisibility)
+        // Persist to backend — read final position from node state
+        for (const id of dragEndIds) {
+          const node = content.find((n) => n.id === id)
+          if (!node) continue
+          const { x, y } = node.position
+          clearTimeout(positionSaveTimers.current[id])
+          positionSaveTimers.current[id] = setTimeout(() => {
+            updateDecisionPosition({ variables: { id, x, y } })
+          }, 400)
+        }
         return [...lanes, ...content]
       })
     }
-  }, [onNodesChange, setNodes, campaignId, toggleVisibility])
+  }, [onNodesChange, setNodes, campaignId, toggleVisibility, updateDecisionPosition])
 
   const isResolved = selectedDecision?.status === 'RESOLVED'
   const isLocked = selectedDecision && (() => {
@@ -572,6 +717,33 @@ export default function DecisionTreeView() {
 
   return (
     <>
+      <style>{`.react-flow__node.selected > div { outline: none !important; box-shadow: none !important; }`}</style>
+      {edgeHover && (
+        <Box sx={{
+          position: 'fixed', pointerEvents: 'none', zIndex: 9999,
+          left: edgeHover.x + 14, top: edgeHover.y - 10,
+          bgcolor: '#1a1710', border: '1px solid rgba(120,108,92,0.4)',
+          borderRadius: 0.75, px: 1, py: 0.4,
+          fontSize: '0.68rem', color: '#786c5c', fontFamily: '"JetBrains Mono"',
+          whiteSpace: 'nowrap',
+        }}>
+          right-click to remove
+        </Box>
+      )}
+      {nodeHover && (
+        <Box sx={{
+          position: 'fixed', pointerEvents: 'none', zIndex: 9999,
+          left: nodeHover.x + 14, top: nodeHover.y - 10,
+          bgcolor: '#1a1710', border: '1px solid rgba(120,108,92,0.4)',
+          borderRadius: 0.75, px: 1.25, py: 0.75,
+          maxWidth: 280,
+        }}>
+          <Typography sx={{ fontSize: '0.62rem', color: '#786c5c', fontFamily: '"JetBrains Mono"', mb: 0.5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            DM Notes
+          </Typography>
+          <RichTextDisplay html={nodeHover.context} fontSize="0.72rem" />
+        </Box>
+      )}
       <Box ref={containerRef} sx={{ width: '100%', height: 'calc(100vh - 210px)', minHeight: 500, borderRadius: 1, overflow: 'hidden', border: '1px solid rgba(120,108,92,0.3)' }}>
         <ReactFlow
           nodes={nodes}
@@ -581,9 +753,18 @@ export default function DecisionTreeView() {
           onConnect={onConnect}
           onEdgesDelete={onEdgesDelete}
           onEdgeContextMenu={onEdgeContextMenu}
+          onEdgeMouseEnter={onEdgeMouseEnter}
+          onEdgeMouseMove={onEdgeMouseMove}
+          onEdgeMouseLeave={onEdgeMouseLeave}
           onNodeClick={onNodeClick}
+          onNodeMouseEnter={onNodeMouseEnter}
+          onNodeMouseMove={onNodeMouseMove}
+          onNodeMouseLeave={onNodeMouseLeave}
           onMove={(_, viewport) => { viewportRef.current = viewport }}
           deleteKeyCode="Delete"
+          multiSelectionKeyCode="Control"
+          selectionOnDrag
+          panOnDrag={[1, 2]}
           nodeTypes={nodeTypes}
           fitView
           fitViewOptions={{ padding: 0.2 }}
@@ -595,6 +776,9 @@ export default function DecisionTreeView() {
         >
           <Background variant={BackgroundVariant.Dots} gap={24} size={1} color="rgba(120,108,92,0.15)" />
           <Controls style={{ background: 'transparent' }} />
+          <Panel position="top-left" style={{ margin: '12px' }}>
+            <GraphSearch nodes={nodes} />
+          </Panel>
           <MiniMap
             nodeColor={(node) => {
               if (node.id.startsWith('lane-')) return 'transparent'
@@ -616,7 +800,7 @@ export default function DecisionTreeView() {
           'Click a node to view or resolve a decision',
           'Drag from a node handle to connect two nodes',
           'Right-click a connection to remove it',
-          'Drag nodes to rearrange the layout',
+          'Ctrl+click or drag empty space to multi-select · drag selection to move',
         ].map((hint) => (
           <Typography key={hint} sx={{ fontSize: '0.68rem', color: 'rgba(120,108,92,0.5)', fontFamily: '"JetBrains Mono"' }}>
             {hint}
@@ -712,9 +896,12 @@ export default function DecisionTreeView() {
               )}
               </AnimatePresence>
               {selectedDecision.context && (
-                <Typography sx={{ color: '#786c5c', fontSize: '0.82rem', mb: 1.5, fontStyle: 'italic', lineHeight: 1.5 }}>
-                  {selectedDecision.context}
-                </Typography>
+                <Box sx={{ mb: 1.5, p: 1.25, bgcolor: '#0e0c09', borderRadius: 1, border: '1px solid rgba(120,108,92,0.2)' }}>
+                  <Typography sx={{ fontSize: '0.62rem', color: '#786c5c', fontFamily: '"JetBrains Mono"', mb: 0.5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    DM Notes
+                  </Typography>
+                  <RichTextDisplay html={selectedDecision.context} />
+                </Box>
               )}
 
               {(selectedDecision.incomingLinks ?? []).length > 0 && (

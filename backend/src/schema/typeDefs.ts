@@ -206,6 +206,7 @@ const extensions = `
     updateMission(id: ID!, input: UpdateMissionInput!): Mission!
     updateSession(id: ID!, input: UpdateSessionInput!): Session!
     updateDecision(id: ID!, input: UpdateDecisionInput!): Decision!
+    updateDecisionPosition(id: ID!, x: Float!, y: Float!): Boolean!
 
     # Branch editing
     updateBranch(id: ID!, input: UpdateBranchInput!): DecisionBranch!

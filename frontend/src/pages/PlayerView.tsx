@@ -85,7 +85,9 @@ export default function PlayerView() {
   const view = data?.playerView
   if (!view) return null
 
-  const { campaign, sessions, items, factions, characters, resolvedDecisions, missedDecisions, encounters, stats, chapterLanes } = view
+  const { campaign, sessions, items, factions, resolvedDecisions, missedDecisions, encounters, stats, chapterLanes } = view
+  const characters = (view.characters as Array<{ name: string; description?: string | null; status: string; role: string }>)
+    .filter((c) => c.role !== 'MONSTER')
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#0b0906', py: 4, px: { xs: 2, md: 4 } }}>

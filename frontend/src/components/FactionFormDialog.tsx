@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useMutation, gql } from '@apollo/client'
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
-  Button, TextField, Grid,
+  Button, TextField, Grid, useTheme, useMediaQuery,
 } from '@mui/material'
 import { useCampaign } from '../context/campaign'
 
@@ -38,6 +38,8 @@ interface Props {
 export default function FactionFormDialog({ open, onClose, onSaved, faction }: Props) {
   const { campaignId } = useCampaign()
   const isEdit = !!faction?.id
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
 
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -88,7 +90,7 @@ export default function FactionFormDialog({ open, onClose, onSaved, faction }: P
   }
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth fullScreen={isMobile}>
       <DialogTitle sx={{ color: '#e6d8c0', fontFamily: '"Cinzel", serif', fontSize: '1rem' }}>
         {isEdit ? 'Edit Faction' : 'New Faction'}
       </DialogTitle>

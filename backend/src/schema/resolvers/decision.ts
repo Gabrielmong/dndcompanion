@@ -200,6 +200,11 @@ export const decisionResolvers = {
       return true
     },
 
+    updateDecisionPosition: async (_: unknown, args: { id: string; x: number; y: number }, ctx: Context) => {
+      await ctx.prisma.decision.update({ where: { id: args.id }, data: { positionX: args.x, positionY: args.y } })
+      return true
+    },
+
     updateBranch: (_: unknown, args: { id: string; input: Record<string, unknown> }, ctx: Context) => {
       const data: Record<string, unknown> = { ...args.input }
       if (data.outcomeType) data.outcomeType = (data.outcomeType as string).toLowerCase()

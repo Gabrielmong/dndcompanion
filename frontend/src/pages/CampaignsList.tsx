@@ -82,12 +82,12 @@ export default function CampaignsList() {
       variants={fadeIn}
       initial="hidden"
       animate="visible"
-      sx={{ minHeight: '100vh', bgcolor: '#0b0906', p: 4 }}
+      sx={{ minHeight: '100vh', bgcolor: '#0b0906', p: { xs: 2, sm: 4 } }}
     >
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 5 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 5, flexWrap: 'wrap', gap: 1.5 }}>
         <Box>
-          <Typography variant="h3" sx={{ fontFamily: '"Cinzel", serif', color: '#c8a44a', mb: 0.5 }}>
+          <Typography variant="h3" sx={{ fontFamily: '"Cinzel", serif', color: '#c8a44a', mb: 0.5, fontSize: { xs: '1.8rem', sm: '3rem' } }}>
             The Companion
           </Typography>
           {user && (
@@ -134,7 +134,7 @@ export default function CampaignsList() {
         </Box>
       )}
 
-      <Grid container spacing={2} component={motion.div} variants={staggerContainer} initial="hidden" animate="visible">
+      <Grid container spacing={{ xs: 1.5, sm: 2 }} component={motion.div} variants={staggerContainer} initial="hidden" animate="visible">
         {campaigns.map((c: { id: string; name: string; system?: string | null; yearInGame?: string | null; playerCount?: number | null; description?: string | null; activeChapter?: { name: string } | null }) => (
           <Grid item xs={12} sm={6} md={4} key={c.id} component={motion.div} variants={slideUp}>
             <Card sx={{ position: 'relative', border: '1px solid rgba(120,108,92,0.3)', '&:hover': { border: '1px solid rgba(200,164,74,0.4)' } }}>

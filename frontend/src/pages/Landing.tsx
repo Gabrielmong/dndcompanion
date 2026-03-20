@@ -328,8 +328,9 @@ export default function Landing() {
       </Box>
 
       {/* Preview mocks */}
-      <Box sx={{ px: { xs: 2, md: 6 }, pb: 8 }}>
-        <Grid container spacing={3} sx={{ maxWidth: 1100, mx: 'auto' }}>
+      <Box sx={{ px: { xs: 2, md: 6 }, pb: 8, overflow: 'hidden' }}>
+        <Box sx={{ maxWidth: 1100, mx: 'auto' }}>
+        <Grid container spacing={{ xs: 2, md: 3 }}>
 
           {/* Characters column */}
           <Grid item xs={12} md={4}>
@@ -426,6 +427,7 @@ export default function Landing() {
             </Box>
           </Grid>
         </Grid>
+        </Box>
       </Box>
 
       <Divider sx={{ borderColor: 'rgba(120,108,92,0.15)', maxWidth: 1100, mx: 'auto' }} />
@@ -442,7 +444,7 @@ export default function Landing() {
                 Map every branching choice your players face. Trace consequences across chapters, link encounters, and see the full story at a glance.
               </Typography>
             </Box>
-            <Box sx={{ display: 'flex', gap: 1.5 }}>
+            <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
               {[{ label: 'Ch. 3 · Sunken Vault', color: '#4a8fb5' }, { label: 'Ch. 4 · Hollow Covenant', color: '#a06db5' }, { label: 'Ch. 5 · Into the Abyss', color: '#b5734a' }].map((c) => (
                 <Box key={c.label} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                   <Box sx={{ width: 8, height: 8, borderRadius: '2px', bgcolor: c.color }} />
@@ -456,28 +458,30 @@ export default function Landing() {
       </Box>
 
       {/* Features grid */}
-      <Box sx={{ px: { xs: 3, md: 6 }, py: 8 }}>
+      <Box sx={{ px: { xs: 3, md: 6 }, py: 8, overflow: 'hidden' }}>
         <Typography variant="h4" sx={{ fontFamily: '"Cinzel", serif', color: '#e6d8c0', textAlign: 'center', mb: 1, fontSize: { xs: '1.4rem', md: '1.8rem' } }}>
           Everything the DM Needs
         </Typography>
         <Typography sx={{ color: '#786c5c', textAlign: 'center', mb: 5, maxWidth: 480, mx: 'auto' }}>
           From the first session to the final boss — The Companion keeps your world organized.
         </Typography>
-        <Grid container spacing={2.5} sx={{ maxWidth: 1100, mx: 'auto' }}>
-          {FEATURES.map((f) => (
-            <Grid item xs={12} sm={6} md={4} key={f.title}>
-              <Paper elevation={0} sx={{ p: 2.5, height: '100%', bgcolor: '#111009', border: '1px solid rgba(120,108,92,0.2)', borderRadius: 2, transition: 'border-color 0.2s', '&:hover': { borderColor: 'rgba(200,164,74,0.35)' } }}>
-                <Box sx={{ color: '#c8a44a', mb: 1.25 }}>{f.icon}</Box>
-                <Typography sx={{ fontFamily: '"Cinzel", serif', color: '#e6d8c0', fontWeight: 600, mb: 0.75, fontSize: '0.95rem' }}>
-                  {f.title}
-                </Typography>
-                <Typography sx={{ color: '#786c5c', fontSize: '0.83rem', lineHeight: 1.6 }}>
-                  {f.desc}
-                </Typography>
-              </Paper>
-            </Grid>
-          ))}
-        </Grid>
+        <Box sx={{ maxWidth: 1100, mx: 'auto' }}>
+          <Grid container spacing={{ xs: 2, md: 2.5 }}>
+            {FEATURES.map((f) => (
+              <Grid item xs={12} sm={6} md={4} key={f.title}>
+                <Paper elevation={0} sx={{ p: 2.5, height: '100%', bgcolor: '#111009', border: '1px solid rgba(120,108,92,0.2)', borderRadius: 2, transition: 'border-color 0.2s', '&:hover': { borderColor: 'rgba(200,164,74,0.35)' } }}>
+                  <Box sx={{ color: '#c8a44a', mb: 1.25 }}>{f.icon}</Box>
+                  <Typography sx={{ fontFamily: '"Cinzel", serif', color: '#e6d8c0', fontWeight: 600, mb: 0.75, fontSize: '0.95rem' }}>
+                    {f.title}
+                  </Typography>
+                  <Typography sx={{ color: '#786c5c', fontSize: '0.83rem', lineHeight: 1.6 }}>
+                    {f.desc}
+                  </Typography>
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
       </Box>
 
       {/* CTA */}
@@ -494,7 +498,7 @@ export default function Landing() {
       </Box>
 
       {/* Footer */}
-      <Box sx={{ borderTop: '1px solid rgba(120,108,92,0.1)', px: 6, py: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+      <Box sx={{ borderTop: '1px solid rgba(120,108,92,0.1)', px: { xs: 2, md: 6 }, py: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
         <Typography sx={{ fontFamily: '"Cinzel", serif', color: '#3a332a', fontSize: '0.85rem' }}>
           The Companion
         </Typography>

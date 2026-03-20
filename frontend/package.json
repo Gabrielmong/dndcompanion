@@ -1,6 +1,6 @@
 {
   "name": "ttrpg-companion-frontend",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -13,6 +13,10 @@
     "@emotion/styled": "^11.13.0",
     "@mui/icons-material": "^6.1.0",
     "@mui/material": "^6.1.0",
+    "@tiptap/extension-placeholder": "^3.20.4",
+    "@tiptap/pm": "^3.20.4",
+    "@tiptap/react": "^3.20.4",
+    "@tiptap/starter-kit": "^3.20.4",
     "framer-motion": "^12.38.0",
     "graphql": "^16.9.0",
     "pdfjs-dist": "^5.5.207",

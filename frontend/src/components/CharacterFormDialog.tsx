@@ -4,6 +4,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Button, TextField, Select, MenuItem, FormControl, InputLabel,
   Grid, Typography, Divider, FormControlLabel, Checkbox, Box,
+  useTheme, useMediaQuery,
 } from '@mui/material'
 import { useCampaign } from '../context/campaign'
 
@@ -56,6 +57,8 @@ const defaultStats = { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 }
 export default function CharacterFormDialog({ open, onClose, onSaved, character }: Props) {
   const { campaignId } = useCampaign()
   const isEdit = !!character?.id
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
 
   const [name, setName] = useState('')
   const [role, setRole] = useState('NPC')
@@ -147,7 +150,7 @@ export default function CharacterFormDialog({ open, onClose, onSaved, character 
   }
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth fullScreen={isMobile}>
       <DialogTitle sx={{ color: '#e6d8c0', fontFamily: '"Cinzel", serif', fontSize: '1rem' }}>
         {isEdit ? 'Edit Character' : 'New Character'}
       </DialogTitle>

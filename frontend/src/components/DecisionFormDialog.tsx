@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useMutation, useQuery, gql } from '@apollo/client'
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Button, TextField, Select, MenuItem, FormControl, InputLabel,
   Grid, Box, Typography, IconButton, Divider,
+  useTheme, useMediaQuery,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
 import { useCampaign } from '../context/campaign'
+import RichTextEditor from './RichTextEditor'
 
 const CHAPTERS = gql`
   query DecisionFormChapters($campaignId: ID!) {
@@ -139,9 +141,12 @@ function BranchEditor({
 export default function DecisionFormDialog({ open, onClose, onSaved, decision }: Props) {
   const { campaignId } = useCampaign()
   const isEdit = !!decision?.id
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
 
   const [question, setQuestion] = useState('')
   const [context, setContext] = useState('')
+  const handleContextChange = useCallback((html: string) => setContext(html), [])
   const [missionName, setMissionName] = useState('')
   const [chapterId, setChapterId] = useState('')
 
@@ -173,7 +178,8 @@ export default function DecisionFormDialog({ open, onClose, onSaved, decision }:
         setExistingBranches([])
       }
     }
-  }, [open, decision, isEdit])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, decision?.id, isEdit])
 
   const [createDecision, { loading: creating }] = useMutation(CREATE_DECISION, {
     refetchQueries: ['Decisions', 'AllDecisionsTree'],
@@ -273,7 +279,7 @@ export default function DecisionFormDialog({ open, onClose, onSaved, decision }:
   }
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth fullScreen={isMobile}>
       <DialogTitle sx={{ color: '#e6d8c0', fontFamily: '"Cinzel", serif', fontSize: '1rem' }}>
         {isEdit ? 'Edit Decision' : 'New Decision'}
       </DialogTitle>
@@ -300,8 +306,8 @@ export default function DecisionFormDialog({ open, onClose, onSaved, decision }:
             </FormControl>
           </Grid>
           <Grid item xs={12}>
-            <TextField label="Context / DM Notes" value={context} onChange={(e) => setContext(e.target.value)}
-              fullWidth size="small" multiline rows={2} />
+            <Typography sx={{ fontSize: '0.75rem', color: '#786c5c', mb: 0.5 }}>Context / DM Notes</Typography>
+            <RichTextEditor value={context} onChange={handleContextChange} placeholder="Add DM notes, context, background…" minHeight={80} />
           </Grid>
 
           {/* Branches section */}

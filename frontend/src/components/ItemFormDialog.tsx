@@ -3,6 +3,7 @@ import { useMutation, gql } from '@apollo/client'
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Button, TextField, Select, MenuItem, FormControl, InputLabel, Grid,
+  useTheme, useMediaQuery,
 } from '@mui/material'
 import { useCampaign } from '../context/campaign'
 
@@ -40,6 +41,8 @@ interface Props {
 export default function ItemFormDialog({ open, onClose, onSaved, item }: Props) {
   const { campaignId } = useCampaign()
   const isEdit = !!item?.id
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
 
   const [name, setName] = useState('')
   const [type, setType] = useState('ITEM')
@@ -83,7 +86,7 @@ export default function ItemFormDialog({ open, onClose, onSaved, item }: Props) 
   }
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth fullScreen={isMobile}>
       <DialogTitle sx={{ color: '#e6d8c0', fontFamily: '"Cinzel", serif', fontSize: '1rem' }}>
         {isEdit ? 'Edit Item' : 'New Item'}
       </DialogTitle>

@@ -21,6 +21,7 @@ async function main() {
   })
 
   // PDF proxy — only allows D&D Beyond sheet-pdf URLs to prevent SSRF
+  app.options('/api/proxy-pdf', corsOptions)
   app.post('/api/proxy-pdf', corsOptions, express.json(), async (req, res) => {
     const { url } = req.body ?? {}
     if (typeof url !== 'string') {

@@ -83,7 +83,7 @@ export default function Characters() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 1 }}>
         <Typography variant="h4">Characters</Typography>
         <Button variant="contained" size="small" startIcon={<AddIcon />}
           onClick={() => { setEditChar(null); setFormOpen(true) }}>
@@ -98,7 +98,7 @@ export default function Characters() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           size="small"
-          sx={{ minWidth: 220 }}
+          sx={{ minWidth: { xs: '100%', sm: 220 }, flex: { xs: '1 1 100%', sm: 'unset' } }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -107,13 +107,13 @@ export default function Characters() {
             ),
           }}
         />
-        <FormControl size="small" sx={{ minWidth: 130 }}>
+        <FormControl size="small" sx={{ minWidth: { xs: 'calc(50% - 6px)', sm: 130 }, flex: { xs: '1 1 calc(50% - 6px)', sm: 'unset' } }}>
           <InputLabel>Role</InputLabel>
           <Select value={role} onChange={(e) => setRole(e.target.value)} label="Role">
             {ROLES.map((r) => <MenuItem key={r} value={r}>{r || 'All Roles'}</MenuItem>)}
           </Select>
         </FormControl>
-        <FormControl size="small" sx={{ minWidth: 130 }}>
+        <FormControl size="small" sx={{ minWidth: { xs: 'calc(50% - 6px)', sm: 130 }, flex: { xs: '1 1 calc(50% - 6px)', sm: 'unset' } }}>
           <InputLabel>Status</InputLabel>
           <Select value={status} onChange={(e) => setStatus(e.target.value)} label="Status">
             {STATUSES.map((s) => <MenuItem key={s} value={s}>{s || 'All Statuses'}</MenuItem>)}

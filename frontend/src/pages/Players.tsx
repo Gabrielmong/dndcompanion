@@ -5,7 +5,7 @@ import {
   CircularProgress, Alert, LinearProgress, Divider, Tooltip,
   IconButton, Dialog, DialogTitle, DialogContent, DialogActions,
   Accordion, AccordionSummary, AccordionDetails, Table, TableBody,
-  TableRow, TableCell, TextField,
+  TableRow, TableCell, TextField, useTheme, useMediaQuery,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import UploadFileIcon from '@mui/icons-material/UploadFile'
@@ -186,6 +186,8 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000'
 export default function Players() {
   const { campaignId } = useCampaign()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
 
   const [parsing, setParsing] = useState(false)
   const [syncingId, setSyncingId] = useState<string | null>(null)
@@ -305,9 +307,9 @@ export default function Players() {
   return (
     <Box>
       {/* ── Header ── */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 1 }}>
         <Typography variant="h4">Players</Typography>
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
           <input ref={fileInputRef} type="file" accept=".pdf" style={{ display: 'none' }}
             onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileUpload(f); e.target.value = '' }} />
           <Button variant="outlined" size="small" startIcon={<LinkIcon />}
@@ -463,7 +465,7 @@ export default function Players() {
       )}
 
       {/* ── Character Sheet Detail Dialog ── */}
-      <Dialog open={!!selectedPlayer} onClose={() => setSelectedPlayer(null)} maxWidth="md" fullWidth
+      <Dialog open={!!selectedPlayer} onClose={() => setSelectedPlayer(null)} maxWidth="md" fullWidth fullScreen={isMobile}
         PaperProps={{ sx: { bgcolor: '#0f0d0a', border: '1px solid rgba(120,108,92,0.3)', maxHeight: '92vh' } }}>
         {selectedPlayer && sheet && (
           <>
@@ -532,14 +534,14 @@ export default function Players() {
 
               {/* Ability scores */}
               {[sheet.strength, sheet.dexterity, sheet.constitution, sheet.intelligence, sheet.wisdom, sheet.charisma].some(Boolean) && (
-                <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
                   {Object.entries(ABILITY_ABBR).map(([key, abbr]) => {
                     const score = sheet[key as keyof ParsedCharacterSheet] as number | undefined
                     const modVal = sheet[MOD_KEY[key] as keyof ParsedCharacterSheet] as string | undefined
                       ?? (score != null ? modStr(score) : undefined)
                     if (!score) return null
                     return (
-                      <Box key={abbr} sx={{ flex: 1, textAlign: 'center', py: 1, bgcolor: '#111009', borderRadius: 1, border: '1px solid rgba(120,108,92,0.2)' }}>
+                      <Box key={abbr} sx={{ flex: '1 1 calc(33.33% - 8px)', minWidth: 60, textAlign: 'center', py: 1, bgcolor: '#111009', borderRadius: 1, border: '1px solid rgba(120,108,92,0.2)' }}>
                         <Typography sx={{ fontSize: '0.6rem', color: '#786c5c', fontFamily: '"JetBrains Mono"' }}>{abbr}</Typography>
                         <Typography sx={{ fontSize: '1.1rem', color: '#e6d8c0', fontWeight: 700, fontFamily: '"JetBrains Mono"', lineHeight: 1.2 }}>{score}</Typography>
                         <Typography sx={{ fontSize: '0.72rem', color: '#c8a44a', fontFamily: '"JetBrains Mono"' }}>{modVal}</Typography>

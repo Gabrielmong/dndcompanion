@@ -152,7 +152,7 @@ export default function Dashboard() {
       animate="visible"
     >
       {/* Header */}
-      <Box component={motion.div} variants={slideUp} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
+      <Box component={motion.div} variants={slideUp} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3, flexWrap: 'wrap', gap: 1 }}>
         <Box>
           <Typography variant="h3" sx={{ mb: 0.5 }}>{campaign.name}</Typography>
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>

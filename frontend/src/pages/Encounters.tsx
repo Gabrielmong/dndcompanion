@@ -161,7 +161,7 @@ export default function Encounters() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 1 }}>
         <Typography variant="h4">Encounters</Typography>
         <Button variant="contained" size="small" startIcon={<AddIcon />}
           onClick={() => { setEditEncounter(null); setFormOpen(true) }}

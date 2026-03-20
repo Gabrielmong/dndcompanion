@@ -51,3 +51,6 @@ coverage/
 # Misc
 *.pem
 *.key
+
+# Database backups
+db_backup_*.sql
