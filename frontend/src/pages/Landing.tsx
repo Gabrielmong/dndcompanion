@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { useAuthStore } from '../store/auth'
 import { motion } from 'framer-motion'
 import { fadeIn, slideUp, staggerContainer } from '../utils/motion'
 import {
@@ -752,6 +753,7 @@ function MockPlayerView() {
 
 export default function Landing() {
   const navigate = useNavigate()
+  const isLoggedIn = !!useAuthStore((s) => s.token)
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#0b0906', color: '#e6d8c0', overflowX: 'hidden' }}>
@@ -761,12 +763,20 @@ export default function Landing() {
           The Companion
         </Typography>
         <Box sx={{ display: 'flex', gap: 1.5 }}>
-          <Button variant="text" size="small" onClick={() => navigate('/login')} sx={{ color: '#786c5c', '&:hover': { color: '#e6d8c0' } }}>
-            Sign In
-          </Button>
-          <Button variant="contained" size="small" onClick={() => navigate('/register')} sx={{ px: 2 }}>
-            Get Started
-          </Button>
+          {isLoggedIn ? (
+            <Button variant="contained" size="small" onClick={() => navigate('/')} sx={{ px: 2 }}>
+              Back to App
+            </Button>
+          ) : (
+            <>
+              <Button variant="text" size="small" onClick={() => navigate('/login')} sx={{ color: '#786c5c', '&:hover': { color: '#e6d8c0' } }}>
+                Sign In
+              </Button>
+              <Button variant="contained" size="small" onClick={() => navigate('/register')} sx={{ px: 2 }}>
+                Get Started
+              </Button>
+            </>
+          )}
         </Box>
       </Box>
 
@@ -796,12 +806,20 @@ export default function Landing() {
           Track characters, decisions, factions, and sessions. Roll 3D animated dice. Share live character sheets with your players — all in one dark, focused tool.
         </Typography>
         <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Button variant="contained" size="large" onClick={() => navigate('/register')} sx={{ px: 4, fontFamily: '"Cinzel", serif', letterSpacing: '0.05em' }}>
-            Start for Free
-          </Button>
-          <Button variant="outlined" size="large" onClick={() => navigate('/login')} sx={{ px: 4, borderColor: 'rgba(120,108,92,0.4)', color: '#786c5c', '&:hover': { borderColor: '#c8a44a', color: '#c8a44a' } }}>
-            Sign In
-          </Button>
+          {isLoggedIn ? (
+            <Button variant="contained" size="large" onClick={() => navigate('/')} sx={{ px: 4, fontFamily: '"Cinzel", serif', letterSpacing: '0.05em' }}>
+              Back to App
+            </Button>
+          ) : (
+            <>
+              <Button variant="contained" size="large" onClick={() => navigate('/register')} sx={{ px: 4, fontFamily: '"Cinzel", serif', letterSpacing: '0.05em' }}>
+                Start for Free
+              </Button>
+              <Button variant="outlined" size="large" onClick={() => navigate('/login')} sx={{ px: 4, borderColor: 'rgba(120,108,92,0.4)', color: '#786c5c', '&:hover': { borderColor: '#c8a44a', color: '#c8a44a' } }}>
+                Sign In
+              </Button>
+            </>
+          )}
         </Box>
       </Box>
 

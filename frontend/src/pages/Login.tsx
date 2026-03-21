@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useMutation, gql } from '@apollo/client'
 import {
@@ -26,6 +26,12 @@ const LOGIN = gql`
 export default function Login() {
   const navigate = useNavigate()
   const { setAuth } = useAuthStore()
+
+  const token = useAuthStore((s) => s.token)
+  useEffect(() => {
+    if (token) navigate('/', { replace: true })
+  }, [token, navigate])
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
