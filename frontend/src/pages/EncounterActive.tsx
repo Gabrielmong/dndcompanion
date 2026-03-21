@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, gql } from '@apollo/client'
 import {
@@ -6,8 +6,11 @@ import {
   Chip, IconButton, TextField, Select, MenuItem, FormControl,
   Dialog, DialogTitle, DialogContent, DialogActions, Tooltip,
   Divider, LinearProgress, Autocomplete, InputLabel, InputAdornment,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material'
 import { useCampaign } from '../context/campaign'
+import { fetchDdbSheet, sheetToUpdateInput } from '../utils/ddbSync'
 import { useDiceStore } from '../store/dice'
 import CasinoIcon from '@mui/icons-material/Casino'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
@@ -31,7 +34,7 @@ const ENCOUNTER = gql`
       participants {
         id name isPlayer initiative hpMax hpCurrent armorClass conditions isActive
         killedByName killedDescription notes
-        character { id name attacks extra }
+        character { id name attacks extra portraitUrl }
       }
     }
   }
@@ -67,6 +70,12 @@ const UPDATE_CHARACTER_STATUS = gql`
 const END_ENCOUNTER = gql`
   mutation EndEncounter($id: ID!, $outcomeType: EncounterOutcome!, $outcome: String) {
     endEncounter(id: $id, outcomeType: $outcomeType, outcome: $outcome) { id status outcomeType }
+  }
+`
+
+const UPDATE_CHARACTER = gql`
+  mutation EncounterUpdateCharacter($id: ID!, $input: UpdateCharacterInput!) {
+    updateCharacter(id: $id, input: $input) { id name attacks extra stats hpMax hpCurrent armorClass speed }
   }
 `
 
@@ -139,7 +148,7 @@ type Participant = {
   conditions: string[]; isActive: boolean
   killedByName?: string | null; killedDescription?: string | null
   notes?: string | null
-  character?: { id: string; name: string; attacks?: Attack[] | null; extra?: unknown } | null
+  character?: { id: string; name: string; attacks?: Attack[] | null; extra?: unknown; portraitUrl?: string | null } | null
 }
 
 type CampaignChar = { id: string; name: string; role: string; hpMax?: number | null; hpCurrent?: number | null; armorClass?: number | null; initiative?: number | null; stats?: Record<string, number> | null }
@@ -148,6 +157,8 @@ export default function EncounterActive() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { campaignId } = useCampaign()
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
   const { data, loading, error } = useQuery(ENCOUNTER, {
     variables: { id },
@@ -155,9 +166,51 @@ export default function EncounterActive() {
     pollInterval: 5000,
   })
 
-  const [nextTurn] = useMutation(NEXT_TURN, { refetchQueries: ['EncounterActive'] })
-  const [prevTurn] = useMutation(PREV_TURN, { refetchQueries: ['EncounterActive'] })
+  const [nextTurnMutation] = useMutation(NEXT_TURN, { refetchQueries: ['EncounterActive'] })
+  const [prevTurnMutation] = useMutation(PREV_TURN, { refetchQueries: ['EncounterActive'] })
+  const [updateCharacter] = useMutation(UPDATE_CHARACTER)
   const [updateParticipant] = useMutation(UPDATE_PARTICIPANT, { refetchQueries: ['EncounterActive'] })
+  const [updateParticipantSilent] = useMutation(UPDATE_PARTICIPANT) // no refetch — used during background sync
+
+  // Silently sync all DDB-linked player participants: updates both Character record and participant HP/AC
+  const syncDdbParticipants = useCallback((participants: Participant[]) => {
+    participants.forEach(async (p) => {
+      if (!p.isPlayer || !p.character) return
+      const extra = p.character.extra as Record<string, unknown> | null
+      if (extra?.importType !== 'url' || typeof extra?.sheetUrl !== 'string') return
+      try {
+        const ddbId = extra.sheetUrl.match(/dndbeyond\.com\/characters\/(\d+)/i)?.[1] ?? (/^\d+$/.test(extra.sheetUrl) ? extra.sheetUrl : null)
+        if (!ddbId) return
+        const sheet = await fetchDdbSheet(ddbId)
+        // Update the Character record (stats, extra, portraitUrl, etc.)
+        await updateCharacter({ variables: { id: p.character.id, input: sheetToUpdateInput(sheet, extra.sheetUrl as string) } })
+        // Also push fresh HP / AC into the encounter participant so the UI reflects DDB data
+        await updateParticipantSilent({
+          variables: {
+            id: p.id,
+            input: {
+              hpMax: sheet.hpMax ?? undefined,
+              hpCurrent: sheet.hpCurrent ?? sheet.hpMax ?? undefined,
+              armorClass: sheet.armorClass ?? undefined,
+            },
+          },
+        })
+      } catch { /* silent */ }
+    })
+  }, [updateCharacter, updateParticipantSilent])
+
+  const nextTurn = useCallback((opts?: Parameters<typeof nextTurnMutation>[0]) => {
+    const participants: Participant[] = data?.encounter?.participants ?? []
+    syncDdbParticipants(participants)
+    return nextTurnMutation(opts)
+  }, [nextTurnMutation, data, syncDdbParticipants])
+
+  const prevTurn = useCallback((opts?: Parameters<typeof prevTurnMutation>[0]) => {
+    const participants: Participant[] = data?.encounter?.participants ?? []
+    syncDdbParticipants(participants)
+    return prevTurnMutation(opts)
+  }, [prevTurnMutation, data, syncDdbParticipants])
+
   const [addParticipant, { loading: addingP }] = useMutation(ADD_PARTICIPANT, { refetchQueries: ['EncounterActive'] })
   const [removeParticipant] = useMutation(REMOVE_PARTICIPANT, { refetchQueries: ['EncounterActive'] })
   const [updateCharacterStatus] = useMutation(UPDATE_CHARACTER_STATUS, { refetchQueries: ['Characters', 'Dashboard'] })
@@ -165,6 +218,19 @@ export default function EncounterActive() {
     refetchQueries: ['Encounters', 'EncountersForTree'],
     onCompleted: () => navigate('/encounters'),
   })
+
+  // Save each player participant's final HP back to their Character record before ending
+  const handleEndEncounter = useCallback(async (variables: { id: string; outcomeType: string; outcome?: string }) => {
+    const participants: Participant[] = data?.encounter?.participants ?? []
+    await Promise.all(
+      participants
+        .filter((p) => p.isPlayer && p.character?.id && p.hpCurrent != null)
+        .map((p) =>
+          updateCharacter({ variables: { id: p.character!.id, input: { hpCurrent: p.hpCurrent ?? 0 } } }).catch(() => {})
+        )
+    )
+    endEncounter({ variables })
+  }, [data, updateCharacter, endEncounter])
 
   const { data: charsData } = useQuery(CAMPAIGN_CHARS, { variables: { campaignId }, skip: !campaignId })
   const campaignChars: CampaignChar[] = charsData?.characters ?? []
@@ -310,8 +376,15 @@ export default function EncounterActive() {
               width: 32, height: 32, borderRadius: 1, bgcolor: isCurrent ? '#3a2e14' : '#1a1610',
               border: `1px solid ${isCurrent ? '#c8a44a' : 'rgba(120,108,92,0.3)'}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              position: 'relative', overflow: 'hidden',
             }}>
-              <Typography sx={{ fontSize: '0.78rem', fontFamily: '"JetBrains Mono"', color: isCurrent ? '#c8a44a' : '#786c5c', fontWeight: 700 }}>
+              {p.character?.portraitUrl && (
+                <Box component="img" src={p.character.portraitUrl} alt={p.name}
+                  sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top', opacity: 0.75 }} />
+              )}
+              <Typography sx={{ fontSize: '0.78rem', fontFamily: '"JetBrains Mono"', fontWeight: 700, position: 'relative',
+                color: isCurrent ? '#c8a44a' : (p.character?.portraitUrl ? '#fff' : '#786c5c'),
+                textShadow: p.character?.portraitUrl ? '0 1px 3px rgba(0,0,0,0.9)' : 'none' }}>
                 {p.initiative}
               </Typography>
             </Box>
@@ -500,7 +573,7 @@ export default function EncounterActive() {
   }
 
   return (
-    <Box sx={{ pb: { xs: isCompleted ? 0 : '72px', md: 0 } }}>
+    <Box sx={{ pb: { xs: isCompleted ? 0 : '72px', md: 0 }, pt: isMobile ? 1 : 0 }}>
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
         <Box>
@@ -912,7 +985,7 @@ export default function EncounterActive() {
         </DialogContent>
         <DialogActions sx={{ px: 2, pb: 2 }}>
           <Button onClick={() => setEndOpen(false)} sx={{ color: '#786c5c' }}>Cancel</Button>
-          <Button onClick={() => endEncounter({ variables: { id, outcomeType, outcome: outcomeText || undefined } })}
+          <Button onClick={() => handleEndEncounter({ id: id!, outcomeType, outcome: outcomeText || undefined })}
             disabled={ending} variant="contained" size="small"
             sx={{ bgcolor: '#c8a44a', '&:hover': { bgcolor: '#e6c86a' } }}>
             End Encounter

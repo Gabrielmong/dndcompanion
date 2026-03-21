@@ -184,7 +184,7 @@ export default function Profile() {
       variants={fadeIn}
       initial="hidden"
       animate="visible"
-      sx={{ minHeight: '100vh', bgcolor: '#0b0906', p: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+      sx={{ minHeight: '100svh', bgcolor: '#0b0906', p: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}
     >
       <Box sx={{ width: '100%', maxWidth: 560 }}>
         {/* Back */}

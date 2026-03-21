@@ -87,6 +87,9 @@ export interface ParsedCharacterSheet {
   spellcastingClass?: string
   spellcastingAbility?: string
 
+  // Portrait (from D&D Beyond import)
+  portraitUrl?: string
+
   // Raw field dump for debugging
   _fields?: Record<string, string>
 }

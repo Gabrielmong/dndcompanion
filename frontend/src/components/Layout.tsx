@@ -73,7 +73,7 @@ function DrawerContent({ onNavigate, hasAppBar }: { onNavigate?: () => void; has
   return (
     <>
       {/* Spacer to clear the mobile AppBar */}
-      {hasAppBar && <Toolbar sx={{ minHeight: '64px !important' }} />}
+      {hasAppBar && <Toolbar sx={{ minHeight: '52px !important' }} />}
       {/* Logo + Campaign Name */}
       <Box sx={{ p: 2, borderBottom: '1px solid rgba(120,108,92,0.3)' }}>
         <Box
@@ -164,7 +164,7 @@ export default function Layout() {
   }, [remoteSetsData])
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#0b0906' }}>
+    <Box sx={{ display: 'flex', minHeight: '100svh', bgcolor: '#0b0906' }}>
       {/* Mobile top bar */}
       {isMobile && (
         <AppBar position="fixed" sx={{
@@ -225,7 +225,7 @@ export default function Layout() {
       <Box component="main" sx={{
         flex: 1, overflow: 'auto',
         p: { xs: 2, md: 3 },
-        pt: { xs: '64px', md: 3 }, // account for mobile AppBar
+        pt: { xs: '52px', md: 3 }, // account for mobile AppBar
       }}>
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
@@ -234,7 +234,7 @@ export default function Layout() {
             initial="hidden"
             animate="visible"
             exit="exit"
-            style={{ height: '100%' }}
+            style={{ height: '100%', }}
           >
             <Outlet />
           </motion.div>

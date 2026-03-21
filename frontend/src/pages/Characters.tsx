@@ -18,6 +18,8 @@ import {
   InputAdornment,
   IconButton,
   Tooltip,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material'
 import SearchIcon from '@mui/icons-material/Search'
 import AddIcon from '@mui/icons-material/Add'
@@ -80,6 +82,9 @@ export default function Characters() {
   const [editChar, setEditChar] = useState<CharType | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleteName, setDeleteName] = useState('')
+
+    const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
   const { data, loading, error, refetch } = useQuery(CHARACTERS, {
     variables: { campaignId, role: role || undefined, status: status || undefined, search: search || undefined },
@@ -198,7 +203,9 @@ export default function Characters() {
   }
 
   return (
-    <Box>
+    <Box
+      pt={isMobile ? 1 : 0}
+    >
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 1 }}>
         <Typography variant="h4">Characters</Typography>
         <Button variant="contained" size="small" startIcon={<AddIcon />}

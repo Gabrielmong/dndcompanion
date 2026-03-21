@@ -382,14 +382,14 @@ export default function Chapters() {
   }
 
   return (
-    <Box sx={{ display: 'flex', height: isMobile ? 'calc(100vh - 68px)' : 'calc(100vh)', overflow: 'hidden', mx: { xs: -2, md: -3 }, mt: { xs: 0, md: -3 }, mb: { xs: -2, md: -3 } }}>
+    <Box sx={{ position: 'relative', display: 'flex', height: isMobile ? 'calc(100svh - 68px)' : 'calc(100svh)', overflow: 'hidden', mx: { xs: -2, md: -3 }, mt: { xs: 0, md: -3 }, mb: { xs: -2, md: -3 } }}>
 
       {/* Sidebar */}
       {(!isMobile || showSidebar) && (
         <Box sx={{
-          width: sidebarWidth, flexShrink: 0, display: 'flex', flexDirection: 'column',
+          width: isMobile ? '100%' : sidebarWidth, flexShrink: 0, display: 'flex', flexDirection: 'column',
           bgcolor: '#0d0b08', height: '100%', overflow: 'hidden',
-          ...(isMobile ? { position: 'absolute', zIndex: 10, top: 0, left: 0, height: '100%' } : {}),
+          ...(isMobile ? { position: 'absolute', zIndex: 10, top: 0, left: 0, right: 0, height: '100%' } : {}),
         }}>
           <Box sx={{ px: 1.5, py: 1.25, borderBottom: '1px solid rgba(120,108,92,0.12)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography sx={{ fontSize: '0.7rem', color: '#786c5c', textTransform: 'uppercase', letterSpacing: 1, fontFamily: '"JetBrains Mono"' }}>

@@ -3,7 +3,10 @@ import { useMutation, gql } from '@apollo/client'
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Button, TextField, Grid, useTheme, useMediaQuery,
+  Box, Popover, InputAdornment, Tooltip,
 } from '@mui/material'
+import EmojiPicker from '@emoji-mart/react'
+import emojiData from '@emoji-mart/data'
 import { useCampaign } from '../context/campaign'
 
 const CREATE_FACTION = gql`
@@ -47,6 +50,7 @@ export default function FactionFormDialog({ open, onClose, onSaved, faction }: P
   const [icon, setIcon] = useState('')
   const [repMin, setRepMin] = useState('-3')
   const [repMax, setRepMax] = useState('3')
+  const [emojiAnchor, setEmojiAnchor] = useState<HTMLElement | null>(null)
 
   useEffect(() => {
     if (open) {
@@ -56,6 +60,7 @@ export default function FactionFormDialog({ open, onClose, onSaved, faction }: P
       setIcon(faction?.icon ?? '')
       setRepMin(faction?.repMin != null ? String(faction.repMin) : '-3')
       setRepMax(faction?.repMax != null ? String(faction.repMax) : '3')
+      setEmojiAnchor(null)
     }
   }, [open, faction])
 
@@ -106,7 +111,45 @@ export default function FactionFormDialog({ open, onClose, onSaved, faction }: P
             <TextField label="Color (hex)" value={color} onChange={(e) => setColor(e.target.value)} fullWidth size="small" placeholder="#c8a44a" />
           </Grid>
           <Grid item xs={6}>
-            <TextField label="Icon (emoji or text)" value={icon} onChange={(e) => setIcon(e.target.value)} fullWidth size="small" />
+            <TextField
+              label="Icon"
+              value={icon}
+              onChange={(e) => setIcon(e.target.value)}
+              fullWidth
+              size="small"
+              placeholder="🛡️ or text"
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <Tooltip title="Pick emoji">
+                      <Box
+                        onClick={(e) => setEmojiAnchor(e.currentTarget)}
+                        sx={{ cursor: 'pointer', fontSize: '1.1rem', lineHeight: 1, px: 0.5, '&:hover': { opacity: 0.7 } }}
+                      >
+                        {icon || '🛡️'}
+                      </Box>
+                    </Tooltip>
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <Popover
+              open={Boolean(emojiAnchor)}
+              anchorEl={emojiAnchor}
+              onClose={() => setEmojiAnchor(null)}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+            >
+              <EmojiPicker
+                data={emojiData}
+                theme="dark"
+                onEmojiSelect={(e: { native: string }) => {
+                  setIcon(e.native)
+                  setEmojiAnchor(null)
+                }}
+                previewPosition="none"
+                skinTonePosition="none"
+              />
+            </Popover>
           </Grid>
           {!isEdit && (
             <>

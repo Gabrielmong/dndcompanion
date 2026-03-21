@@ -317,7 +317,7 @@ export default function PlayerDecisionTree({ decisions, missedDecisions, encount
   return (
     <>
       <Box sx={{
-        width: '100%', height: 'calc(100vh - 260px)', minHeight: 480,
+        width: '100%', height: 'calc(100svh - 260px)', minHeight: 480,
         borderRadius: 1, overflow: 'hidden', border: '1px solid rgba(120,108,92,0.3)',
       }}>
         <ReactFlow

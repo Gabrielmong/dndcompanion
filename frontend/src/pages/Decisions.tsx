@@ -6,6 +6,8 @@ import {
   Box, Typography, Select, MenuItem, FormControl, InputLabel,
   CircularProgress, Alert, Grid, Button, IconButton, Tooltip,
   ToggleButton, ToggleButtonGroup, Collapse,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import EditIcon from '@mui/icons-material/Edit'
@@ -83,6 +85,8 @@ export default function Decisions() {
   const [editDecision, setEditDecision] = useState<DecisionFull | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleteQuestion, setDeleteQuestion] = useState('')
+    const theme = useTheme()
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
   const toggleChapter = (id: string) =>
     setCollapsedChapters((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next })
@@ -149,7 +153,9 @@ export default function Decisions() {
   }, [data])
 
   return (
-    <Box>
+    <Box
+      pt={isMobile ? 1 : 0}
+    >
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 1 }}>
         <Typography variant="h4">Decisions</Typography>
 

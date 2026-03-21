@@ -4,6 +4,8 @@ import { useQuery, useMutation, gql } from '@apollo/client'
 import {
   Box, Typography, List, ListItem, ListItemText, IconButton,
   Tooltip, Button, Chip,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
@@ -53,6 +55,8 @@ const STATUS_ORDER: Record<string, number> = { ACTIVE: 0, PLANNED: 1, COMPLETED:
 export default function Sessions() {
   const { campaignId } = useCampaign()
   const navigate = useNavigate()
+      const theme = useTheme()
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
   const [sessionFormOpen, setSessionFormOpen] = useState(false)
   const [editSession, setEditSession] = useState<Session | null>(null)
@@ -85,7 +89,9 @@ export default function Sessions() {
     : 1
 
   return (
-    <Box>
+    <Box
+      pt={isMobile ? 1 : 0}
+    >
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h5" sx={{ fontFamily: '"Cinzel", serif', color: '#c8a44a' }}>

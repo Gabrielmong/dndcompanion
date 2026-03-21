@@ -53,7 +53,7 @@ export default function Register() {
   return (
     <Box
       sx={{
-        minHeight: '100vh',
+        minHeight: '100svh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

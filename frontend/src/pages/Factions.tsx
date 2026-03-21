@@ -3,6 +3,8 @@ import { useQuery, useMutation, gql } from '@apollo/client'
 import {
   Box, Typography, Grid, Card, CardContent, CircularProgress, Alert,
   Button, IconButton, Tooltip,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import EditIcon from '@mui/icons-material/Edit'
@@ -43,6 +45,8 @@ export default function Factions() {
   const [editFaction, setEditFaction] = useState<FactionType | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleteName, setDeleteName] = useState('')
+    const theme = useTheme()
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
   const { data, loading, error, refetch } = useQuery(FACTIONS, {
     variables: { campaignId },
@@ -68,12 +72,14 @@ export default function Factions() {
   if (error) return <Alert severity="error">{error.message}</Alert>
 
   return (
-    <Box>
+    <Box
+      pt={isMobile ? 1 : 0}
+    >
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
         <Typography variant="h4">Factions</Typography>
         <Button variant="contained" size="small" startIcon={<AddIcon />}
           onClick={() => { setEditFaction(null); setFormOpen(true) }}>
-          New Faction
+          {isMobile ? 'Add' : 'Add Faction'}
         </Button>
       </Box>
 

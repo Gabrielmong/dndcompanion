@@ -67,7 +67,7 @@ export default function PlayerView() {
 
   if (loading) {
     return (
-      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#0b0906' }}>
+      <Box sx={{ minHeight: '100svh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#0b0906' }}>
         <CircularProgress sx={{ color: '#c8a44a' }} />
       </Box>
     )
@@ -75,7 +75,7 @@ export default function PlayerView() {
 
   if (error) {
     return (
-      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#0b0906' }}>
+      <Box sx={{ minHeight: '100svh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#0b0906' }}>
         <Alert severity="error" sx={{ maxWidth: 400 }}>
           {error.message.includes('not found') ? 'This campaign link is invalid or has expired.' : error.message}
         </Alert>
@@ -91,7 +91,7 @@ export default function PlayerView() {
     .filter((c) => c.role !== 'MONSTER')
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#0b0906', py: 4, px: { xs: 2, md: 4 } }}>
+    <Box sx={{ minHeight: '100svh', bgcolor: '#0b0906', py: 4, px: { xs: 2, md: 4 } }}>
       <Box sx={{ maxWidth: 900, mx: 'auto' }}>
         {/* Header */}
         <Box sx={{ textAlign: 'center', mb: 5 }}>

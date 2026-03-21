@@ -744,7 +744,7 @@ export default function DecisionTreeView() {
           <RichTextDisplay html={nodeHover.context} fontSize="0.72rem" />
         </Box>
       )}
-      <Box ref={containerRef} sx={{ width: '100%', height: 'calc(100vh - 210px)', minHeight: 500, borderRadius: 1, overflow: 'hidden', border: '1px solid rgba(120,108,92,0.3)' }}>
+      <Box ref={containerRef} sx={{ width: '100%', height: 'calc(100svh - 210px)', minHeight: 500, borderRadius: 1, overflow: 'hidden', border: '1px solid rgba(120,108,92,0.3)' }}>
         <ReactFlow
           nodes={nodes}
           edges={edges}

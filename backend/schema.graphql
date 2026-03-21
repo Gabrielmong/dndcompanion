@@ -613,6 +613,7 @@ input UpdateCharacterInput {
   miniPrinted: Boolean
   miniStlSource: String
   miniSearchHint: String
+  portraitUrl: String
   tags: [String!]
   extra: JSON
 }

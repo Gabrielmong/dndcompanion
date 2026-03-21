@@ -5,6 +5,7 @@ import {
   Box, Typography, Chip, CircularProgress,
   Alert, Button, Accordion, AccordionSummary, AccordionDetails, Tooltip,
   Table, TableBody, TableRow, TableCell, Divider, IconButton,
+  useTheme,
 } from '@mui/material'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
@@ -96,6 +97,9 @@ export default function CharacterDetail() {
   const [updateCharacter] = useMutation(UPDATE_CHARACTER)
   const [deleteCharacter, { loading: deleting }] = useMutation(DELETE_CHARACTER)
   const { triggerRoll } = useDiceStore()
+
+  const theme = useTheme()
+  const isMobile = theme.breakpoints.down('md')
 
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', pt: 8 }}><CircularProgress sx={{ color: '#c8a44a' }} /></Box>
   if (error) return <Alert severity="error">{error.message}</Alert>
@@ -252,7 +256,7 @@ export default function CharacterDetail() {
   ].filter((s) => s.value != null)
 
   return (
-    <Box sx={{ maxWidth: 860, mx: 'auto' }}>
+    <Box sx={{ maxWidth: 860, mx: 'auto', pt: isMobile ? 1 : 0 }}>
       {/* Top nav */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/characters')}

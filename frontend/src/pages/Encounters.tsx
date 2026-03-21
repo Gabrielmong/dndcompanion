@@ -4,6 +4,8 @@ import { useQuery, useMutation, gql } from '@apollo/client'
 import {
   Box, Typography, Grid, Button, Chip, CircularProgress, Alert,
   IconButton, Tooltip, Card, CardContent,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
@@ -57,6 +59,8 @@ export default function Encounters() {
   const [editEncounter, setEditEncounter] = useState<Encounter | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleteName, setDeleteName] = useState('')
+    const theme = useTheme()
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
   const { data, loading, error, refetch } = useQuery(ENCOUNTERS, {
     variables: { campaignId },
@@ -160,7 +164,9 @@ export default function Encounters() {
   )
 
   return (
-    <Box>
+    <Box
+      pt={isMobile ? 1 : 0}
+    >
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 1 }}>
         <Typography variant="h4">Encounters</Typography>
         <Button variant="contained" size="small" startIcon={<AddIcon />}

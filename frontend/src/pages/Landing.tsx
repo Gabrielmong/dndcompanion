@@ -756,7 +756,7 @@ export default function Landing() {
   const isLoggedIn = !!useAuthStore((s) => s.token)
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#0b0906', color: '#e6d8c0', overflowX: 'hidden' }}>
+    <Box sx={{ minHeight: '100svh', bgcolor: '#0b0906', color: '#e6d8c0', overflowX: 'hidden' }}>
       {/* Nav */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: { xs: 3, md: 6 }, py: 2.5, borderBottom: '1px solid rgba(120,108,92,0.15)' }}>
         <Typography sx={{ fontFamily: '"Cinzel", serif', color: '#c8a44a', fontWeight: 700, fontSize: '1.1rem', letterSpacing: '0.04em' }}>

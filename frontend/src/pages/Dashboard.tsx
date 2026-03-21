@@ -6,6 +6,8 @@ import { slideUp, staggerContainer } from '../utils/motion'
 import {
   Box, Typography, Grid, Button, Chip, CircularProgress, Alert,
   Divider, Tooltip, IconButton, List, ListItem, ListItemText,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
@@ -88,6 +90,8 @@ const CAMPAIGN_STATS = gql`
 export default function Dashboard() {
   const navigate = useNavigate()
   const { campaignId } = useCampaign()
+    const theme = useTheme()
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
   const [chapterFormOpen, setChapterFormOpen] = useState(false)
   const [editChapter, setEditChapter] = useState<{ id: string; name: string; summary?: string | null; status: string; orderIndex: number } | null>(null)
@@ -167,6 +171,7 @@ export default function Dashboard() {
       variants={staggerContainer}
       initial="hidden"
       animate="visible"
+      pt={isMobile ? 1 : 0}
     >
       {/* Header */}
       <Box component={motion.div} variants={slideUp} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3, flexWrap: 'wrap', gap: 1 }}>

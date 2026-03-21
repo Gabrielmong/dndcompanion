@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { useQuery, useMutation, gql } from '@apollo/client'
 import {
   Box, Typography, Grid, Button, Card, CardContent, Chip,
@@ -22,24 +22,25 @@ import { useCampaign } from '../context/campaign'
 import { useDiceStore } from '../store/dice'
 import { parseCharacterSheet } from '../utils/parseCharacterSheet'
 import type { ParsedCharacterSheet } from '../utils/parseCharacterSheet'
+import { parseDndBeyondCharacterId, fetchDdbSheet } from '../utils/ddbSync'
 import PlayerFormDialog from '../components/PlayerFormDialog'
 import type { PlayerFormValues, PlayerFormWeapon, PlayerFormEquipItem } from '../components/PlayerFormDialog'
 
 const PLAYERS = gql`
   query Players($campaignId: ID!) {
     characters(campaignId: $campaignId, role: PLAYER) {
-      id name description status hpMax hpCurrent armorClass speed stats extra tags
+      id name description status hpMax hpCurrent armorClass speed stats extra tags portraitUrl
     }
   }
 `
 const CREATE_PLAYER = gql`
   mutation CreatePlayer($input: CreateCharacterInput!) {
-    createCharacter(input: $input) { id name }
+    createCharacter(input: $input) { id name portraitUrl }
   }
 `
 const UPDATE_PLAYER = gql`
   mutation UpdatePlayer($id: ID!, $input: UpdateCharacterInput!) {
-    updateCharacter(id: $id, input: $input) { id name hpMax hpCurrent armorClass speed stats extra }
+    updateCharacter(id: $id, input: $input) { id name hpMax hpCurrent armorClass speed stats portraitUrl extra }
   }
 `
 const DELETE_PLAYER = gql`
@@ -52,6 +53,7 @@ type Player = {
   id: string; name: string; description?: string | null; status: string
   hpMax?: number | null; hpCurrent?: number | null; armorClass?: number | null
   speed?: number | null; stats?: Record<string, number>; extra: Record<string, unknown>; tags: string[]
+  portraitUrl?: string | null
 }
 
 type SheetExtra = ParsedCharacterSheet & {
@@ -119,13 +121,15 @@ function sheetToInput(sheet: ParsedCharacterSheet, importType: ImportType, sheet
     name: sheet.name ?? 'Unknown',
     description: [sheet.race, sheet.class, sheet.background].filter(Boolean).join(' · ') || undefined,
     hpMax: sheet.hpMax,
-    hpCurrent: sheet.hpMax,
+    hpCurrent: importType === 'url' ? sheet.hpCurrent ?? sheet.hpMax : sheet.hpMax,
     armorClass: sheet.armorClass,
     speed: sheet.speed ? parseInt(sheet.speed) || undefined : undefined,
     stats: Object.keys(stats).length ? stats : undefined,
+    portraitUrl: sheet.portraitUrl || undefined,
     extra: extra as unknown as Record<string, unknown>,
   }
 }
+
 
 /** Build create/update payload from manual form values */
 function formToInput(v: PlayerFormValues, importType: ImportType) {
@@ -261,6 +265,26 @@ export default function Players() {
 
   const players: Player[] = data?.characters ?? []
 
+  // ── Auto-sync DDB players on page load ───────────────────────────────────
+  const hasSyncedRef = useRef(false)
+  useEffect(() => {
+    if (!data?.characters || hasSyncedRef.current) return
+    hasSyncedRef.current = true
+    const ddbPlayers = (data.characters as Player[]).filter((p) => {
+      const ex = p.extra as SheetExtra
+      return ex?.importType === 'url' && ex?.sheetUrl
+    })
+    ddbPlayers.forEach(async (p) => {
+      const url = (p.extra as SheetExtra).sheetUrl!
+      try {
+        const ddbId = parseDndBeyondCharacterId(url)
+        if (!ddbId) return
+        const sheet = await fetchDdbSheet(ddbId)
+        await updatePlayer({ variables: { id: p.id, input: sheetToInput(sheet, 'url', url) } })
+      } catch { /* silent */ }
+    })
+  }, [data])
+
   // ── File Upload ──────────────────────────────────────────────────────────
   const handleFileUpload = async (file: File) => {
     if (!file.name.toLowerCase().endsWith('.pdf')) { setParseError('Please select a PDF file.'); return }
@@ -275,6 +299,9 @@ export default function Players() {
 
   // ── URL Import ───────────────────────────────────────────────────────────
   const fetchAndParse = async (url: string): Promise<ParsedCharacterSheet> => {
+    const ddbId = parseDndBeyondCharacterId(url)
+    if (ddbId) return fetchDdbSheet(ddbId)
+    // Fallback: treat as PDF URL
     const res = await fetch(`${API_BASE}/api/proxy-pdf`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -349,7 +376,9 @@ export default function Players() {
   if (error) return <Alert severity="error">{error.message}</Alert>
 
   return (
-    <Box>
+    <Box
+      pt={isMobile ? 1 : 0}
+    >
       {/* ── Header ── */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5, flexWrap: 'wrap', gap: 1 }}>
         <Typography variant="h4">Players</Typography>
@@ -359,7 +388,7 @@ export default function Players() {
           <Button variant="outlined" size="small" startIcon={<LinkIcon />}
             onClick={() => setUrlDialogOpen(true)} disabled={parsing}
             sx={{ borderColor: 'rgba(98,168,112,0.4)', color: '#62a870', '&:hover': { borderColor: '#62a870' } }}>
-            D&D Beyond URL
+            D&D Beyond
           </Button>
           <Button variant="outlined" size="small" startIcon={<UploadFileIcon />}
             onClick={() => fileInputRef.current?.click()} disabled={parsing}
@@ -416,6 +445,10 @@ export default function Players() {
                   <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
                     {/* Header row */}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                      {p.portraitUrl && (
+                        <Box component="img" src={p.portraitUrl} alt={p.name}
+                          sx={{ width: 44, height: 44, borderRadius: 1, objectFit: 'cover', objectPosition: 'top', flexShrink: 0, mr: 1.25, border: '1px solid rgba(120,108,92,0.25)' }} />
+                      )}
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
                           <Typography sx={{ fontFamily: '"Cinzel", serif', fontSize: '0.95rem', color: '#e6d8c0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -773,26 +806,33 @@ export default function Players() {
 
       {/* ── URL Import Dialog ── */}
       <Dialog open={urlDialogOpen} onClose={() => setUrlDialogOpen(false)} maxWidth="sm" fullWidth
-        PaperProps={{ sx: { bgcolor: '#0f0d0a', border: '1px solid rgba(98,168,112,0.25)' } }}>
+        fullScreen={isMobile}
+        PaperProps={{ sx: { bgcolor: '#0f0d0a', border: isMobile ? 'none' : '1px solid rgba(98,168,112,0.25)', ...(isMobile && { display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', m: 0, borderRadius: 0 }) } }}>
         <DialogTitle sx={{ color: '#e6d8c0', fontFamily: '"Cinzel", serif', fontSize: '0.95rem' }}>
           Import from D&D Beyond
         </DialogTitle>
         <DialogContent>
-          <Typography sx={{ fontSize: '0.8rem', color: '#786c5c', mb: 2 }}>
-            Paste the public PDF link. The URL looks like:<br />
-            <span style={{ fontFamily: '"JetBrains Mono"', fontSize: '0.72rem', color: '#c8a44a' }}>
-              https://www.dndbeyond.com/sheet-pdfs/Name_123456789.pdf
-            </span>
+          <Typography sx={{ fontSize: '0.8rem', color: '#786c5c', mb: 1.5 }}>
+            Paste a D&D Beyond character URL or ID. The character must be set to{' '}
+            <strong style={{ color: '#b4a48a' }}>Public</strong> on D&D Beyond.
           </Typography>
+          <Box sx={{ bgcolor: '#0b0906', borderRadius: 1, p: 1.5, mb: 2, border: '1px solid rgba(200,164,74,0.15)' }}>
+            <Typography sx={{ fontFamily: '"JetBrains Mono"', fontSize: '0.7rem', color: '#786c5c', mb: 0.5 }}>Examples:</Typography>
+            <Typography sx={{ fontFamily: '"JetBrains Mono"', fontSize: '0.7rem', color: '#c8a44a', wordBreak: 'break-all', lineHeight: 1.6 }}>
+              dndbeyond.com/characters/162649548{'\n'}
+              dndbeyond.com/characters/162649548/ShareToken{'\n'}
+              162649548
+            </Typography>
+          </Box>
           <TextField
-            label="Sheet PDF URL" value={sheetUrl} onChange={(e) => setSheetUrl(e.target.value)}
+            label="Character URL or ID" value={sheetUrl} onChange={(e) => setSheetUrl(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && sheetUrl.trim() && handleUrlImport()}
             fullWidth size="small" autoFocus
-            placeholder="https://www.dndbeyond.com/sheet-pdfs/..."
+            placeholder="dndbeyond.com/characters/..."
             InputProps={{ style: { fontFamily: '"JetBrains Mono"', fontSize: '0.82rem' } }}
           />
         </DialogContent>
-        <DialogActions sx={{ px: 2, pb: 2 }}>
+        <DialogActions sx={{ px: 2, pb: isMobile ? 4 : 2 }}>
           <Button onClick={() => setUrlDialogOpen(false)} sx={{ color: '#786c5c' }}>Cancel</Button>
           <Button onClick={handleUrlImport} disabled={!sheetUrl.trim()} variant="contained" size="small"
             sx={{ bgcolor: '#62a870', color: '#0b0906', '&:hover': { bgcolor: '#8ede9a' } }}>

@@ -3,6 +3,8 @@ import { useQuery, useMutation, gql } from '@apollo/client'
 import {
   Box, Typography, Divider, CircularProgress, Alert,
   List, ListItem, ListItemText, IconButton, Chip, Tooltip, Button,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
@@ -48,6 +50,8 @@ export default function Items() {
   const [editItem, setEditItem] = useState<ItemType | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleteName, setDeleteName] = useState('')
+    const theme = useTheme()
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
   const { data, loading, error, refetch } = useQuery(ITEMS, {
     variables: { campaignId },
@@ -97,7 +101,9 @@ export default function Items() {
   )
 
   return (
-    <Box>
+    <Box
+      pt={isMobile ? 1 : 0}
+    >
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
         <Typography variant="h4">Items & Relics</Typography>
         <Button variant="contained" size="small" startIcon={<AddIcon />}
