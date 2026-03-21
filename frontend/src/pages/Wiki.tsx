@@ -11,6 +11,8 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useEditor, EditorContent } from '@tiptap/react'
+import { Extension } from '@tiptap/core'
+import { inputRules, InputRule } from '@tiptap/pm/inputrules'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Underline from '@tiptap/extension-underline'
@@ -18,11 +20,15 @@ import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
 import Link from '@tiptap/extension-link'
 import { marked } from 'marked'
+import JSZip from 'jszip'
 import {
   Box, Typography, IconButton, Tooltip, TextField, CircularProgress,
   useTheme, useMediaQuery, LinearProgress, Alert, Dialog,
-  DialogTitle, DialogContent, DialogActions, Button,
+  DialogTitle, DialogContent, DialogActions, Button, Menu, MenuItem, Divider,
+  Popover,
 } from '@mui/material'
+import EmojiPicker from '@emoji-mart/react'
+import emojiData from '@emoji-mart/data'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
@@ -42,6 +48,8 @@ import HorizontalRuleIcon from '@mui/icons-material/HorizontalRule'
 import UploadFileIcon from '@mui/icons-material/UploadFile'
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
 import UnfoldLessIcon from '@mui/icons-material/UnfoldLess'
+import InsertLinkIcon from '@mui/icons-material/InsertLink'
+import LinkOffIcon from '@mui/icons-material/LinkOff'
 import { useCampaign } from '../context/campaign'
 
 // ── Notion export parser ──────────────────────────────────────────────────────
@@ -71,52 +79,84 @@ interface ParsedPage {
   orderIndex: number
 }
 
-async function parseNotionExport(files: FileList): Promise<ParsedPage[]> {
-  const mdFiles = Array.from(files).filter((f) => f.name.endsWith('.md'))
+interface ParseEntry {
+  relativePath: string
+  getText: () => Promise<string>
+}
 
-  // Sort by webkitRelativePath so parents come before children
-  mdFiles.sort((a, b) => a.webkitRelativePath.localeCompare(b.webkitRelativePath))
+async function parseEntries(entries: ParseEntry[]): Promise<ParsedPage[]> {
+  const mdEntries = entries.filter((e) => e.relativePath.endsWith('.md'))
+  mdEntries.sort((a, b) => a.relativePath.localeCompare(b.relativePath))
 
-  // Track order per directory
   const orderCounters: Record<string, number> = {}
-
   const results: ParsedPage[] = []
 
-  for (const file of mdFiles) {
-    const relativePath = file.webkitRelativePath // e.g. "El Último Eco.../Facciones/Enanos/Gorthak 318...md"
-    const parts = relativePath.split('/')
+  for (const entry of mdEntries) {
+    const parts = entry.relativePath.split('/')
     // parts[0] is the root folder (campaign name), skip it
-    // parts[1..n-1] are directory names, parts[n] is filename
-
     const pathSegments = parts.slice(1).map((p) => stripNotionId(p.replace(/\.md$/, '')))
-    // Last segment is the page title itself
     const rawFilename = parts[parts.length - 1].replace(/\.md$/, '')
     const cleanName = stripNotionId(rawFilename)
     const { icon, cleanTitle } = extractIcon(cleanName)
 
-    // Order: count siblings in same directory
     const dirKey = parts.slice(0, parts.length - 1).join('/')
     orderCounters[dirKey] = (orderCounters[dirKey] ?? 0)
     const order = orderCounters[dirKey]++
 
-    // Read content and convert markdown → HTML
-    const text = await file.text()
-    // Remove the first H1 if it matches the title (Notion adds it redundantly)
+    const text = await entry.getText()
     const withoutTitle = text.replace(/^#[^\n]+\n/, '').trim()
-    // Strip Notion internal links (keep link text only)
-    const cleanMd = withoutTitle.replace(/\[([^\]]+)\]\([^)]+\.md[^)]*\)/g, '$1')
-    const html = await marked(cleanMd, { gfm: true, breaks: false }) as string
-
+    // Convert Notion internal .md links → wiki:// placeholders (resolved to page IDs after import)
+    const cleanMd = withoutTitle.replace(/\[([^\]]+)\]\(([^)]*\.md[^)]*)\)/g, (_, label, href) => {
+      const decoded = decodeURIComponent(href.split('#')[0])
+      const segments = decoded.split('/').map((s) => stripNotionId(s.replace(/\.md$/, ''))).filter(Boolean)
+      const cleanPath = segments.slice(1).join('/') // skip root folder
+      return cleanPath ? `[${label}](wiki://${cleanPath})` : label
+    })
     results.push({
       pathSegments,
       title: cleanTitle || 'Untitled',
       icon: icon ?? '📄',
-      content: html,
+      content: cleanMd,
       orderIndex: order,
     })
   }
 
   return results
+}
+
+async function parseNotionExport(files: FileList): Promise<ParsedPage[]> {
+  return parseEntries(
+    Array.from(files).map((f) => ({ relativePath: f.webkitRelativePath, getText: () => f.text() }))
+  )
+}
+
+// Recursively collect .md entries from a zip, handling Notion's outer→Part-N.zip nesting
+async function extractZipEntries(zip: JSZip): Promise<ParseEntry[]> {
+  const entries: ParseEntry[] = []
+  for (const [name, file] of Object.entries(zip.files)) {
+    if (file.dir) continue
+    if (name.endsWith('.zip')) {
+      const inner = await JSZip.loadAsync(await file.async('arraybuffer'))
+      entries.push(...await extractZipEntries(inner))
+    } else if (name.endsWith('.md')) {
+      entries.push({ relativePath: name, getText: () => file.async('text') })
+    }
+  }
+  return entries
+}
+
+async function parseNotionZip(file: File): Promise<ParsedPage[]> {
+  const zip = await JSZip.loadAsync(file)
+  return parseEntries(await extractZipEntries(zip))
+}
+
+// Plain .md files — flat, all imported as root-level pages
+async function parsePlainMdFiles(files: FileList): Promise<ParsedPage[]> {
+  return parseEntries(
+    Array.from(files)
+      .filter((f) => f.name.endsWith('.md'))
+      .map((f) => ({ relativePath: `__root__/${f.name}`, getText: () => f.text() }))
+  )
 }
 
 // ── GraphQL ──────────────────────────────────────────────────────────────────
@@ -361,6 +401,29 @@ function PageTreeRow({
 
 // ── WikiEditor ────────────────────────────────────────────────────────────────
 
+// Converts [display text](url) markdown syntax to a real link as you type
+const MarkdownLinkInput = Extension.create({
+  name: 'markdownLinkInput',
+  addProseMirrorPlugins() {
+    const { schema } = this.editor
+    return [
+      inputRules({
+        rules: [
+          new InputRule(
+            /\[([^\]]+)\]\(([^)]+)\)$/,
+            (state, match, start, end) => {
+              const [, text, href] = match
+              const linkMark = schema.marks.link?.create({ href })
+              if (!linkMark) return null
+              return state.tr.replaceWith(start, end, schema.text(text, [linkMark]))
+            }
+          ),
+        ],
+      }),
+    ]
+  },
+})
+
 const TOOLBAR_BTN = (active: boolean) => ({
   color: active ? '#c8a44a' : '#786c5c',
   '&:hover': { color: '#c8a44a', bgcolor: 'transparent' },
@@ -370,15 +433,72 @@ const TOOLBAR_BTN = (active: boolean) => ({
 function WikiEditor({
   page,
   onSave,
+  onPageNavigate,
+  pages = [],
 }: {
   page: WikiPageFlat
   onSave: (id: string, data: { title?: string; content?: string; icon?: string }) => void
+  onPageNavigate?: (id: string) => void
+  pages?: WikiPageFlat[]
 }) {
   const [title, setTitle] = useState(page.title)
   const [icon, setIcon] = useState(page.icon ?? '📄')
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const contentTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // ── Context menu + link state ─────────────────────────────────────────────
+  const [emojiAnchor, setEmojiAnchor] = useState<HTMLElement | null>(null)
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null)
+  const [extLinkOpen, setExtLinkOpen] = useState(false)
+  const [extLinkUrl, setExtLinkUrl] = useState('')
+  const [pagePickerOpen, setPagePickerOpen] = useState(false)
+  const [pageSearch, setPageSearch] = useState('')
+  // Saved selection so dialogs can restore it after stealing focus
+  const savedSel = useRef<{ from: number; to: number } | null>(null)
+  // Stable ref so editorProps.handleClick can call the latest onPageNavigate
+  const onPageNavigateRef = useRef(onPageNavigate)
+  useEffect(() => { onPageNavigateRef.current = onPageNavigate }, [onPageNavigate])
+
+  const closeCtx = () => setCtxMenu(null)
+
+  const openExtLink = () => {
+    // For toolbar: save selection while editor still has focus (onMouseDown + preventDefault keeps it)
+    if (!editor.state.selection.empty) {
+      savedSel.current = { from: editor.state.selection.from, to: editor.state.selection.to }
+    }
+    const existing = editor?.getAttributes('link').href ?? ''
+    setExtLinkUrl(existing.startsWith('wiki://') ? '' : existing)
+    setExtLinkOpen(true)
+  }
+
+  const restoreAndRun = (href: string) => {
+    editor.view.focus()
+    // Single chain without .focus() — fully synchronous, no requestAnimationFrame
+    const chain = editor.chain()
+    if (savedSel.current) chain.setTextSelection(savedSel.current)
+    chain.setLink({ href }).run()
+    savedSel.current = null
+  }
+
+  const applyExtLink = () => {
+    if (!editor || !extLinkUrl.trim()) return
+    const href = /^https?:\/\//.test(extLinkUrl) ? extLinkUrl : `https://${extLinkUrl}`
+    restoreAndRun(href)
+    setExtLinkOpen(false)
+    setExtLinkUrl('')
+  }
+
+  const applyPageLink = (pageId: string) => {
+    if (!editor) return
+    restoreAndRun(`wiki://${pageId}`)
+    setPagePickerOpen(false)
+    setPageSearch('')
+  }
+
+  const filteredPages = pages.filter(
+    (p) => p.id !== page.id && (p.title.toLowerCase().includes(pageSearch.toLowerCase()) || (p.icon ?? '').includes(pageSearch))
+  )
 
   // Sync when page changes
   useEffect(() => {
@@ -396,6 +516,9 @@ function WikiEditor({
     }, 800)
   }, [page.id, onSave])
 
+  // Flush any pending debounced content save immediately
+  const saveNowRef = useRef<(() => void) | null>(null)
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
@@ -403,16 +526,43 @@ function WikiEditor({
       Underline,
       TaskList,
       TaskItem.configure({ nested: true }),
-      Link.configure({ openOnClick: false, HTMLAttributes: { rel: 'noopener noreferrer', style: 'color:#c8a44a' } }),
+      Link.configure({ openOnClick: false, HTMLAttributes: { rel: 'noopener noreferrer', target: null }, isAllowedUri: () => true }),
+      MarkdownLinkInput,
     ],
     content: page.content || '',
     onUpdate({ editor }) {
       const html = editor.getHTML()
+      const content = html === '<p></p>' ? '' : html
       if (contentTimer.current) clearTimeout(contentTimer.current)
-      contentTimer.current = setTimeout(() => triggerSave({ content: html === '<p></p>' ? '' : html }), 800)
+      saveNowRef.current = () => { saveNowRef.current = null; triggerSave({ content }) }
+      contentTimer.current = setTimeout(() => { saveNowRef.current?.(); saveNowRef.current = null }, 800)
     },
     editorProps: {
       attributes: { style: 'outline:none; min-height:60vh; padding:0; font-size:1rem; color:#c8b89a; line-height:1.75; font-family:"Crimson Pro", Georgia, serif' },
+      handleClick(_view, _pos, event) {
+        const anchor = (event.target as HTMLElement).closest('a')
+        if (anchor) {
+          const href = anchor.getAttribute('href')
+          if (href?.startsWith('wiki://')) {
+            event.preventDefault()
+            event.stopPropagation()
+            onPageNavigateRef.current?.(href.slice(7))
+            return true
+          }
+        }
+        return false
+      },
+      handleKeyDown(_view, event) {
+        if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+          event.preventDefault()
+          if (saveNowRef.current) {
+            if (contentTimer.current) clearTimeout(contentTimer.current)
+            saveNowRef.current()
+          }
+          return true
+        }
+        return false
+      },
     },
   })
 
@@ -431,6 +581,17 @@ function WikiEditor({
   if (!editor) return null
 
   const btn = TOOLBAR_BTN
+  const hasLink = editor.isActive('link')
+  const hasSelection = !editor.state.selection.empty
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault()
+    if (!editor.state.selection.empty) {
+      // Save before the menu steals focus and ProseMirror clears the selection
+      savedSel.current = { from: editor.state.selection.from, to: editor.state.selection.to }
+      setCtxMenu({ x: e.clientX, y: e.clientY })
+    }
+  }
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -498,6 +659,24 @@ function WikiEditor({
             <HorizontalRuleIcon sx={{ fontSize: 16 }} />
           </IconButton>
         </Tooltip>
+        <Box sx={{ width: '1px', bgcolor: 'rgba(120,108,92,0.25)', mx: 0.25, height: 16 }} />
+        <Tooltip title={hasLink ? 'Edit link' : 'Add link'}>
+          <IconButton size="small" onMouseDown={(e) => { e.preventDefault(); openExtLink() }} sx={btn(hasLink)}>
+            <InsertLinkIcon sx={{ fontSize: 16 }} />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Link to wiki page">
+          <IconButton size="small" onMouseDown={(e) => { e.preventDefault(); if (!editor.state.selection.empty) savedSel.current = { from: editor.state.selection.from, to: editor.state.selection.to }; setPagePickerOpen(true) }} sx={btn(hasLink && editor.getAttributes('link').href?.startsWith('wiki://'))}>
+            <SearchIcon sx={{ fontSize: 16 }} />
+          </IconButton>
+        </Tooltip>
+        {hasLink && (
+          <Tooltip title="Remove link">
+            <IconButton size="small" onMouseDown={(e) => { e.preventDefault(); editor.chain().focus().unsetLink().run() }} sx={btn(false)}>
+              <LinkOffIcon sx={{ fontSize: 16 }} />
+            </IconButton>
+          </Tooltip>
+        )}
 
         {/* Save status */}
         <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -514,16 +693,35 @@ function WikiEditor({
       <Box sx={{ flex: 1, overflow: 'auto', px: { xs: 2, md: 6 }, py: 4, maxWidth: 780, width: '100%', mx: 'auto' }}>
         {/* Icon + Title */}
         <Box sx={{ mb: 3 }}>
-          <TextField
-            value={icon}
-            variant="standard"
-            onChange={(e) => {
-              setIcon(e.target.value)
-              triggerSave({ icon: e.target.value })
+          <Box
+            onClick={(e) => setEmojiAnchor(e.currentTarget)}
+            sx={{
+              fontSize: '2.5rem', lineHeight: 1, cursor: 'pointer', display: 'inline-block',
+              mb: 1.5, borderRadius: 1, px: 0.5,
+              '&:hover': { bgcolor: 'rgba(200,164,74,0.08)' },
             }}
-            inputProps={{ style: { fontSize: '2.5rem', width: '3rem', textAlign: 'center', cursor: 'pointer', padding: 0 } }}
-            sx={{ mb: 1.5, '& .MuiInput-underline:before, & .MuiInput-underline:after': { display: 'none' } }}
-          />
+            title="Change icon"
+          >
+            {icon}
+          </Box>
+          <Popover
+            open={Boolean(emojiAnchor)}
+            anchorEl={emojiAnchor}
+            onClose={() => setEmojiAnchor(null)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+          >
+            <EmojiPicker
+              data={emojiData}
+              theme="dark"
+              onEmojiSelect={(e: { native: string }) => {
+                setIcon(e.native)
+                triggerSave({ icon: e.native })
+                setEmojiAnchor(null)
+              }}
+              previewPosition="none"
+              skinTonePosition="none"
+            />
+          </Popover>
           <TextField
             value={title}
             variant="standard"
@@ -565,6 +763,7 @@ function WikiEditor({
           },
           '.tiptap hr': { border: 'none', borderTop: '1px solid rgba(120,108,92,0.2)', my: 2 },
           '.tiptap a': { color: '#c8a44a', textDecorationColor: 'rgba(200,164,74,0.4)' },
+          '.tiptap a[href^="wiki://"]': { color: '#a8c4e8', textDecorationColor: 'rgba(168,196,232,0.4)', cursor: 'pointer' },
           // Task list
           '.tiptap ul[data-type="taskList"]': { listStyle: 'none', pl: 1 },
           '.tiptap li[data-type="taskItem"]': { display: 'flex', alignItems: 'flex-start', gap: 1, my: 0.25 },
@@ -576,10 +775,104 @@ function WikiEditor({
             content: 'attr(data-placeholder)', color: 'rgba(120,108,92,0.4)',
             pointerEvents: 'none', float: 'left', height: 0,
           },
-        }}>
+        }}
+          onContextMenu={handleContextMenu}
+        >
           <EditorContent editor={editor} />
         </Box>
       </Box>
+
+      {/* ── Context menu ───────────────────────────────────────────────── */}
+      <Menu
+        open={Boolean(ctxMenu)}
+        onClose={closeCtx}
+        anchorReference="anchorPosition"
+        anchorPosition={ctxMenu ? { top: ctxMenu.y, left: ctxMenu.x } : undefined}
+        slotProps={{ paper: { sx: { bgcolor: '#111009', border: '1px solid rgba(120,108,92,0.2)', minWidth: 170 } } }}
+      >
+        <MenuItem dense onClick={() => { editor.chain().focus().toggleBold().run(); closeCtx() }}
+          sx={{ fontSize: '0.82rem', color: editor.isActive('bold') ? '#c8a44a' : '#b4a48a', gap: 1 }}>
+          <FormatBoldIcon sx={{ fontSize: 14 }} /> Bold
+        </MenuItem>
+        <MenuItem dense onClick={() => { editor.chain().focus().toggleItalic().run(); closeCtx() }}
+          sx={{ fontSize: '0.82rem', color: editor.isActive('italic') ? '#c8a44a' : '#b4a48a', gap: 1 }}>
+          <FormatItalicIcon sx={{ fontSize: 14 }} /> Italic
+        </MenuItem>
+        <MenuItem dense onClick={() => { editor.chain().focus().toggleUnderline().run(); closeCtx() }}
+          sx={{ fontSize: '0.82rem', color: editor.isActive('underline') ? '#c8a44a' : '#b4a48a', gap: 1 }}>
+          <FormatUnderlinedIcon sx={{ fontSize: 14 }} /> Underline
+        </MenuItem>
+        <MenuItem dense onClick={() => { editor.chain().focus().toggleCode().run(); closeCtx() }}
+          sx={{ fontSize: '0.82rem', color: editor.isActive('code') ? '#c8a44a' : '#b4a48a', gap: 1 }}>
+          <CodeIcon sx={{ fontSize: 14 }} /> Code
+        </MenuItem>
+        <Divider sx={{ borderColor: 'rgba(120,108,92,0.15)', my: 0.5 }} />
+        <MenuItem dense onClick={() => { closeCtx(); openExtLink() }}
+          sx={{ fontSize: '0.82rem', color: '#b4a48a', gap: 1 }}>
+          <InsertLinkIcon sx={{ fontSize: 14 }} /> {hasLink ? 'Edit link' : 'Add external link'}
+        </MenuItem>
+        <MenuItem dense onClick={() => { closeCtx(); setPagePickerOpen(true) }}
+          sx={{ fontSize: '0.82rem', color: '#a8c4e8', gap: 1 }}>
+          <SearchIcon sx={{ fontSize: 14 }} /> Link to wiki page
+        </MenuItem>
+        {hasLink && (
+          <MenuItem dense onClick={() => { editor.chain().focus().unsetLink().run(); closeCtx() }}
+            sx={{ fontSize: '0.82rem', color: '#b84848', gap: 1 }}>
+            <LinkOffIcon sx={{ fontSize: 14 }} /> Remove link
+          </MenuItem>
+        )}
+      </Menu>
+
+      {/* ── External link dialog ───────────────────────────────────────── */}
+      <Dialog open={extLinkOpen} onClose={() => setExtLinkOpen(false)} maxWidth="xs" fullWidth
+        PaperProps={{ sx: { bgcolor: '#111009', border: '1px solid rgba(120,108,92,0.2)' } }}>
+        <DialogTitle sx={{ fontFamily: '"Cinzel", serif', color: '#c8a44a', fontSize: '1rem', pb: 1 }}>
+          {editor.getAttributes('link').href ? 'Edit Link' : 'Add Link'}
+        </DialogTitle>
+        <DialogContent sx={{ pt: 1 }}>
+          <TextField fullWidth autoFocus size="small" label="URL" value={extLinkUrl}
+            onChange={(e) => setExtLinkUrl(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') applyExtLink() }}
+            placeholder="https://..."
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 2, pb: 2 }}>
+          <Button onClick={() => setExtLinkOpen(false)} sx={{ color: '#786c5c' }}>Cancel</Button>
+          <Button onClick={applyExtLink} variant="contained" disabled={!extLinkUrl.trim()}
+            sx={{ bgcolor: '#c8a44a', color: '#0b0906', '&:hover': { bgcolor: '#d4b05a' } }}>
+            Apply
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Page picker dialog ─────────────────────────────────────────── */}
+      <Dialog open={pagePickerOpen} onClose={() => { setPagePickerOpen(false); setPageSearch('') }}
+        maxWidth="xs" fullWidth
+        PaperProps={{ sx: { bgcolor: '#111009', border: '1px solid rgba(120,108,92,0.2)' } }}>
+        <DialogTitle sx={{ fontFamily: '"Cinzel", serif', color: '#c8a44a', fontSize: '1rem', pb: 1 }}>
+          Link to Wiki Page
+        </DialogTitle>
+        <DialogContent sx={{ pt: 1, pb: 0 }}>
+          <TextField fullWidth autoFocus size="small" placeholder="Search pages…" value={pageSearch}
+            onChange={(e) => setPageSearch(e.target.value)}
+            sx={{ mb: 1 }}
+          />
+          <Box sx={{ maxHeight: 320, overflow: 'auto', mx: -1 }}>
+            {filteredPages.length === 0 ? (
+              <Typography sx={{ fontSize: '0.82rem', color: '#786c5c', px: 1, py: 1 }}>No pages found</Typography>
+            ) : filteredPages.map((p) => (
+              <MenuItem key={p.id} onClick={() => applyPageLink(p.id)}
+                sx={{ fontSize: '0.85rem', color: '#b4a48a', gap: 1, borderRadius: 0.5,
+                  '&:hover': { bgcolor: 'rgba(200,164,74,0.06)', color: '#e6d8c0' } }}>
+                <span style={{ fontSize: '1rem', lineHeight: 1 }}>{p.icon ?? '📄'}</span> {p.title}
+              </MenuItem>
+            ))}
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 2, pb: 2, pt: 1 }}>
+          <Button onClick={() => { setPagePickerOpen(false); setPageSearch('') }} sx={{ color: '#786c5c' }}>Cancel</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }
@@ -648,10 +941,13 @@ export default function Wiki() {
     })
   }, [])
   const importInputRef = useRef<HTMLInputElement>(null)
+  const zipInputRef = useRef<HTMLInputElement>(null)
+  const mdInputRef = useRef<HTMLInputElement>(null)
   const [importing, setImporting] = useState(false)
   const [importProgress, setImportProgress] = useState(0)
   const [importTotal, setImportTotal] = useState(0)
   const [importError, setImportError] = useState<string | null>(null)
+  const [importMenuAnchor, setImportMenuAnchor] = useState<null | HTMLElement>(null)
 
   const { data, loading, refetch } = useQuery(WIKI_PAGES, {
     variables: { campaignId },
@@ -840,57 +1136,91 @@ export default function Wiki() {
     if (data.title || data.icon) refetch()
   }, [updatePage, refetch])
 
+  const runImport = async (parsed: ParsedPage[]) => {
+    setImportTotal(parsed.length)
+    const idMap = new Map<string, string>()
+    // Track pages that need link resolution (have wiki:// placeholders)
+    const withLinks: Array<{ id: string; content: string }> = []
+    let done = 0
+
+    // Phase 1: create all pages
+    for (const page of parsed) {
+      const parentPathKey = page.pathSegments.slice(0, -1).join('/')
+      const parentId = idMap.get(parentPathKey) ?? null
+      const result = await createPage({
+        variables: { input: { campaignId, parentId, title: page.title, icon: page.icon, orderIndex: page.orderIndex } },
+      })
+      const newId = result.data?.createWikiPage?.id
+      if (newId) {
+        idMap.set(page.pathSegments.join('/'), newId)
+        if (page.content) {
+          if (page.content.includes('wiki://')) {
+            withLinks.push({ id: newId, content: page.content })
+          } else {
+            const html = await marked(page.content, { gfm: true, breaks: false }) as string
+            await updatePage({ variables: { id: newId, input: { content: html } } })
+          }
+        }
+      }
+      done++
+      setImportProgress(done)
+    }
+
+    // Phase 2: resolve wiki://PATH → wiki://pageId in markdown, then convert to HTML
+    for (const { id, content } of withLinks) {
+      let resolved = content
+      for (const [pathKey, targetId] of idMap) {
+        resolved = resolved.split(`wiki://${pathKey}`).join(`wiki://${targetId}`)
+      }
+      const html = await marked(resolved, { gfm: true, breaks: false }) as string
+      await updatePage({ variables: { id, input: { content: html } } })
+    }
+
+    await refetch()
+  }
+
   const handleImport = async (files: FileList) => {
     if (!campaignId || files.length === 0) return
     setImporting(true)
     setImportError(null)
     setImportProgress(0)
-
     try {
-      const parsed = await parseNotionExport(files)
-      setImportTotal(parsed.length)
-
-      // Map from path-key → created page id so we can link parents
-      // pathKey = joined pathSegments (all but last = the "directory path")
-      const idMap = new Map<string, string>()
-
-      let done = 0
-      for (const page of parsed) {
-        // Parent: look up the path excluding the last segment
-        const parentPathKey = page.pathSegments.slice(0, -1).join('/')
-        const parentId = idMap.get(parentPathKey) ?? null
-
-        const result = await createPage({
-          variables: {
-            input: {
-              campaignId,
-              parentId,
-              title: page.title,
-              icon: page.icon,
-              orderIndex: page.orderIndex,
-            },
-          },
-        })
-        const newId = result.data?.createWikiPage?.id
-        if (newId) {
-          // Register this page's full path for children to look up
-          const fullKey = page.pathSegments.join('/')
-          idMap.set(fullKey, newId)
-          // Save content separately (avoids large payload on create)
-          if (page.content) {
-            await updatePage({ variables: { id: newId, input: { content: page.content } } })
-          }
-        }
-        done++
-        setImportProgress(done)
-      }
-
-      await refetch()
+      await runImport(await parseNotionExport(files))
     } catch (e) {
       setImportError(e instanceof Error ? e.message : 'Import failed')
     } finally {
       setImporting(false)
       if (importInputRef.current) importInputRef.current.value = ''
+    }
+  }
+
+  const handleZipImport = async (file: File) => {
+    if (!campaignId) return
+    setImporting(true)
+    setImportError(null)
+    setImportProgress(0)
+    try {
+      await runImport(await parseNotionZip(file))
+    } catch (e) {
+      setImportError(e instanceof Error ? e.message : 'Import failed')
+    } finally {
+      setImporting(false)
+      if (zipInputRef.current) zipInputRef.current.value = ''
+    }
+  }
+
+  const handleMdImport = async (files: FileList) => {
+    if (!campaignId || files.length === 0) return
+    setImporting(true)
+    setImportError(null)
+    setImportProgress(0)
+    try {
+      await runImport(await parsePlainMdFiles(files))
+    } catch (e) {
+      setImportError(e instanceof Error ? e.message : 'Import failed')
+    } finally {
+      setImporting(false)
+      if (mdInputRef.current) mdInputRef.current.value = ''
     }
   }
 
@@ -904,15 +1234,17 @@ export default function Wiki() {
           bgcolor: '#0d0b08', height: '100%', overflow: 'hidden',
           ...(isMobile ? { position: 'absolute', zIndex: 10, top: 0, left: 0, height: '100%' } : {}),
         }}>
-          {/* Hidden folder input */}
-          <input
-            ref={importInputRef}
-            type="file"
+          {/* Hidden inputs for import modes */}
+          <input ref={importInputRef} type="file"
             // @ts-expect-error webkitdirectory is non-standard
-            webkitdirectory=""
-            multiple
-            style={{ display: 'none' }}
+            webkitdirectory="" multiple style={{ display: 'none' }}
             onChange={(e) => { if (e.target.files) handleImport(e.target.files) }}
+          />
+          <input ref={zipInputRef} type="file" accept=".zip" style={{ display: 'none' }}
+            onChange={(e) => { if (e.target.files?.[0]) handleZipImport(e.target.files[0]) }}
+          />
+          <input ref={mdInputRef} type="file" accept=".md" multiple style={{ display: 'none' }}
+            onChange={(e) => { if (e.target.files) handleMdImport(e.target.files) }}
           />
 
           {/* Sidebar header */}
@@ -927,12 +1259,32 @@ export default function Wiki() {
                   <UnfoldLessIcon sx={{ fontSize: 15 }} />
                 </IconButton>
               </Tooltip>
-              <Tooltip title="Import Notion export (folder)">
-                <IconButton size="small" onClick={() => importInputRef.current?.click()} disabled={importing}
+              <Tooltip title="Import Notion export">
+                <IconButton size="small" disabled={importing}
+                  onClick={(e) => setImportMenuAnchor(e.currentTarget)}
                   sx={{ color: '#786c5c', '&:hover': { color: '#62a870' }, p: 0.5 }}>
                   <UploadFileIcon sx={{ fontSize: 15 }} />
                 </IconButton>
               </Tooltip>
+              <Menu
+                anchorEl={importMenuAnchor}
+                open={Boolean(importMenuAnchor)}
+                onClose={() => setImportMenuAnchor(null)}
+                slotProps={{ paper: { sx: { bgcolor: '#111009', border: '1px solid rgba(120,108,92,0.2)', minWidth: 180 } } }}
+              >
+                <MenuItem onClick={() => { setImportMenuAnchor(null); zipInputRef.current?.click() }}
+                  sx={{ fontSize: '0.82rem', color: '#b4a48a', gap: 1.5 }}>
+                  <UploadFileIcon sx={{ fontSize: 15, color: '#786c5c' }} /> Import .zip
+                </MenuItem>
+                <MenuItem onClick={() => { setImportMenuAnchor(null); importInputRef.current?.click() }}
+                  sx={{ fontSize: '0.82rem', color: '#b4a48a', gap: 1.5 }}>
+                  <UploadFileIcon sx={{ fontSize: 15, color: '#786c5c' }} /> Import folder
+                </MenuItem>
+                <MenuItem onClick={() => { setImportMenuAnchor(null); mdInputRef.current?.click() }}
+                  sx={{ fontSize: '0.82rem', color: '#b4a48a', gap: 1.5 }}>
+                  <UploadFileIcon sx={{ fontSize: 15, color: '#786c5c' }} /> Import .md files
+                </MenuItem>
+              </Menu>
               <Tooltip title="New page">
                 <IconButton size="small" onClick={() => handleAdd()} sx={{ color: '#786c5c', '&:hover': { color: '#c8a44a' }, p: 0.5 }}>
                   <AddIcon sx={{ fontSize: 16 }} />
@@ -1110,7 +1462,9 @@ export default function Wiki() {
           )}
 
           {selectedPage ? (
-            <WikiEditor key={selectedPage.id} page={selectedPage} onSave={handleSave} />
+            <WikiEditor key={selectedPage.id} page={selectedPage} onSave={handleSave} onPageNavigate={(id) => {
+                handleSelect(id)
+              }} pages={pages} />
           ) : (
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 1.5 }}>
               <Typography sx={{ fontSize: '2rem' }}>📖</Typography>

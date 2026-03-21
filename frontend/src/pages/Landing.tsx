@@ -329,7 +329,7 @@ function MockWikiShowcase() {
               Campaign Wiki
             </Typography>
             <Typography sx={{ color: '#786c5c', fontSize: '0.88rem', maxWidth: 420 }}>
-              A Notion-style wiki built into every campaign. Write lore, map factions, document locations — with nested pages, rich text, and direct Notion import.
+              A wiki built into every campaign. Write lore, map factions, document locations — with nested pages, rich text, and direct Notion import.
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>

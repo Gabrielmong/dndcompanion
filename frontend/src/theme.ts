@@ -47,15 +47,17 @@ const theme = createTheme({
     divider: '#786c5c40',
   },
   typography: {
+    htmlFontSize: 17,
     fontFamily: '"Crimson Pro", serif',
+    fontSize: 15,
     h1: { fontFamily: '"Cinzel", serif', color: '#c8a44a' },
     h2: { fontFamily: '"Cinzel", serif', color: '#c8a44a' },
     h3: { fontFamily: '"Cinzel", serif', color: '#e6d8c0' },
     h4: { fontFamily: '"Cinzel", serif', color: '#e6d8c0' },
     h5: { fontFamily: '"Cinzel", serif', color: '#e6d8c0' },
     h6: { fontFamily: '"Cinzel", serif', color: '#e6d8c0' },
-    body1: { fontSize: '1.05rem', color: '#e6d8c0' },
-    body2: { color: '#b4a48a' },
+    body1: { fontSize: '1rem', lineHeight: 1.7, color: '#e6d8c0' },
+    body2: { fontSize: '0.9rem', lineHeight: 1.6, color: '#b4a48a' },
     caption: { color: '#786c5c', fontFamily: '"JetBrains Mono", monospace' },
   },
   shape: {
@@ -64,10 +66,13 @@ const theme = createTheme({
   components: {
     MuiCssBaseline: {
       styleOverrides: {
+        html: { fontSize: 17 },
         body: {
           backgroundColor: '#0b0906',
           color: '#e6d8c0',
           fontFamily: '"Crimson Pro", serif',
+          fontSize: '1rem',
+          lineHeight: 1.7,
         },
         '::-webkit-scrollbar': { width: 6 },
         '::-webkit-scrollbar-track': { background: '#111009' },
