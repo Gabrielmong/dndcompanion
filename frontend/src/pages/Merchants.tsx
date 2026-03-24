@@ -86,7 +86,22 @@ type Merchant = {
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const MERCHANT_TYPES = ['general', 'blacksmith', 'apothecary', 'tavern', 'magic shop', 'fletcher', 'jeweler', 'stable', 'shipwright', 'other']
-const CATEGORIES = ['armor', 'weapon', 'munition', 'food', 'component', 'magic item', 'tool', 'clothing', 'mount', 'misc','service', 'material', 'lodging']
+const CATEGORIES = [
+  'equipment',
+  'lodging',
+  'material',
+  'misc',
+  'service',
+  'mount',
+  'clothing',
+  'tool',
+  'magic item',
+  'component',
+  'food',
+  'armor',
+  'munition',
+  'weapon',
+]
 const RARITIES = ['common', 'uncommon', 'rare', 'very rare', 'legendary']
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -94,7 +109,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   component: '#a862a8', 'magic item': '#c8a44a', tool: '#786c5c',
   clothing: '#a8c862', mount: '#d47c50', misc: '#5c6a78',
   service: '#4a4235', material: '#6ea8d4', munition: '#c87050',
-  lodging: '#786c5c'  
+  lodging: '#786c5c', equipment: '#5c6a78'
 }
 
 function formatPrice(gp: number) {
@@ -428,8 +443,10 @@ function MerchantPanel({ merchant, onEdit, onDelete, onRefetch }: {
                     </Box>
                     {/* Name + rarity */}
                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography sx={{ fontSize: '0.78rem', color: ware.available ? '#b4a48a' : '#786c5c',
-                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <Typography sx={{
+                        fontSize: '0.78rem', color: ware.available ? '#b4a48a' : '#786c5c',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                      }}>
                         {ware.name}
                         {ware.rarity && (
                           <Box component="span" sx={{ ml: 0.75, fontSize: '0.62rem', color: '#786c5c', textTransform: 'capitalize' }}>
@@ -544,7 +561,7 @@ export default function Merchants() {
         <Typography variant="h4">Merchants</Typography>
         <Button variant="contained" size="small" startIcon={<AddIcon />}
           onClick={() => { setEditMerchant(null); setMerchantForm(true) }}>
-            {isMobile ? 'New' : 'New Merchant'}
+          {isMobile ? 'New' : 'New Merchant'}
         </Button>
       </Box>
 
