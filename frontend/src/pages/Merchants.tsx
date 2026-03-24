@@ -85,22 +85,37 @@ type Merchant = {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const MERCHANT_TYPES = ['general', 'blacksmith', 'apothecary', 'tavern', 'magic shop', 'fletcher', 'jeweler', 'stable', 'shipwright', 'other']
+const MERCHANT_TYPES = [
+  'alchemist',
+  'apothecary',
+  'armorer',
+  'blacksmith',
+  'enchanter',
+  'fletcher',
+  'general',
+  'inn',
+  'jeweler',
+  'magic shop',
+  'shipwright',
+  'stable',
+  'tavern',
+  'other',
+]
 const CATEGORIES = [
-  'equipment',
-  'lodging',
-  'material',
-  'misc',
-  'service',
-  'mount',
-  'clothing',
-  'tool',
-  'magic item',
-  'component',
-  'food',
   'armor',
+  'clothing',
+  'component',
+  'equipment',
+  'food',
+  'lodging',
+  'magic item',
+  'material',
+  'mount',
   'munition',
+  'service',
+  'tool',
   'weapon',
+  'misc',
 ]
 const RARITIES = ['common', 'uncommon', 'rare', 'very rare', 'legendary']
 
