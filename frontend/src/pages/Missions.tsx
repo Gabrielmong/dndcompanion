@@ -260,6 +260,7 @@ function MissionEditor({ mission, allDecisions, allItems, chapters, onSave, onAd
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [showLinkDecision, setShowLinkDecision] = useState(false)
   const [showLinkItem, setShowLinkItem] = useState(false)
+  const [lootSearch, setLootSearch] = useState('')
   const [rightPanelWidth, setRightPanelWidth] = useState(() => parseInt(localStorage.getItem('missions-right-panel-width') ?? '260'))
   const [sheetOpen, setSheetOpen] = useState(false)
   const PEEK_HEIGHT = 48
@@ -387,23 +388,45 @@ function MissionEditor({ mission, allDecisions, allItems, chapters, onSave, onAd
       {/* Loot */}
       <Section title="Loot" icon={<Typography sx={{ fontSize: 13 }}>💰</Typography>} count={mission.items.length}>
         <Tooltip title="Link item">
-          <IconButton size="small" onClick={() => setShowLinkItem((v) => !v)}
+          <IconButton size="small" onClick={() => { setShowLinkItem((v) => !v); setLootSearch('') }}
             sx={{ color: showLinkItem ? '#c8a44a' : '#786c5c', '&:hover': { color: '#c8a44a' }, p: 0.5, mb: 0.5 }}>
             <AddIcon sx={{ fontSize: 14 }} />
           </IconButton>
         </Tooltip>
         {showLinkItem && (
-          <Box sx={{ mb: 1, border: '1px solid rgba(120,108,92,0.2)', borderRadius: 1, maxHeight: 160, overflow: 'auto', bgcolor: '#0b0906' }}>
-            {unlinkedItems.length === 0
-              ? <Typography sx={{ px: 1.5, py: 1, fontSize: '0.72rem', color: '#786c5c' }}>No items to link.</Typography>
-              : unlinkedItems.map((item) => (
-                <Box key={item.id} onClick={() => { onLinkItem(item.id, mission.id); setShowLinkItem(false) }}
-                  sx={{ px: 1.5, py: 0.6, cursor: 'pointer', '&:hover': { bgcolor: 'rgba(200,164,74,0.08)' }, borderBottom: '1px solid rgba(120,108,92,0.1)' }}>
-                  <Typography sx={{ fontSize: '0.78rem', color: '#b4a48a' }}>{item.name}</Typography>
-                  <Typography sx={{ fontSize: '0.65rem', color: '#786c5c' }}>{item.type}</Typography>
-                </Box>
-              ))
-            }
+          <Box sx={{ mb: 1 }}>
+            <TextField
+              size="small"
+              placeholder="Search items…"
+              value={lootSearch}
+              onChange={(e) => setLootSearch(e.target.value)}
+              autoFocus
+              fullWidth
+              sx={{
+                mb: 0.5,
+                '& .MuiInputBase-root': { fontSize: '0.78rem', bgcolor: '#0b0906' },
+              }}
+            />
+            <Box sx={{ border: '1px solid rgba(120,108,92,0.2)', borderRadius: 1, maxHeight: 160, overflow: 'auto', bgcolor: '#0b0906' }}>
+              {(() => {
+                const filtered = unlinkedItems.filter((i) =>
+                  i.name.toLowerCase().includes(lootSearch.toLowerCase()) ||
+                  i.type.toLowerCase().includes(lootSearch.toLowerCase())
+                )
+                if (filtered.length === 0)
+                  return <Typography sx={{ px: 1.5, py: 1, fontSize: '0.72rem', color: '#786c5c' }}>
+                    {unlinkedItems.length === 0 ? 'No items to link.' : 'No matches.'}
+                  </Typography>
+                return filtered.map((item) => (
+                  <Box key={item.id}
+                    onClick={() => { onLinkItem(item.id, mission.id); setShowLinkItem(false); setLootSearch('') }}
+                    sx={{ px: 1.5, py: 0.6, cursor: 'pointer', '&:hover': { bgcolor: 'rgba(200,164,74,0.08)' }, borderBottom: '1px solid rgba(120,108,92,0.1)' }}>
+                    <Typography sx={{ fontSize: '0.78rem', color: '#b4a48a' }}>{item.name}</Typography>
+                    <Typography sx={{ fontSize: '0.65rem', color: '#786c5c' }}>{item.type}</Typography>
+                  </Box>
+                ))
+              })()}
+            </Box>
           </Box>
         )}
         {mission.items.length === 0

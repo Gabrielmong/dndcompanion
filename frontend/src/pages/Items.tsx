@@ -116,7 +116,12 @@ export default function Items() {
       {storyCritical.length > 0 && (
         <Box sx={{ mb: 4 }}>
           <Typography variant="h6" sx={{ mb: 1.5, color: '#c8a44a' }}>Story-Critical Items</Typography>
-          <RelicGrid items={storyCritical} onToggle={handleToggle} />
+          <RelicGrid
+            items={storyCritical}
+            onToggle={handleToggle}
+            onEdit={(item) => { setEditItem(item); setFormOpen(true) }}
+            onDelete={(item) => { setDeleteId(item.id); setDeleteName(item.name) }}
+          />
         </Box>
       )}
 

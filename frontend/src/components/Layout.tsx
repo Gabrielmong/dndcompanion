@@ -32,6 +32,7 @@ import LayersIcon from '@mui/icons-material/Layers'
 import MapIcon from '@mui/icons-material/Map'
 import HistoryIcon from '@mui/icons-material/History'
 import BarChartIcon from '@mui/icons-material/BarChart'
+import StorefrontIcon from '@mui/icons-material/Storefront'
 import { useEffect } from 'react'
 import { useQuery, gql } from '@apollo/client'
 import { useAuthStore } from '../store/auth'
@@ -75,6 +76,7 @@ const navItems = [
   { to: '/encounters', label: 'Encounters', icon: <LocalFireDepartmentIcon fontSize="small" /> },
   { to: '/factions', label: 'Factions', icon: <GroupsIcon fontSize="small" /> },
   { to: '/items', label: 'Items', icon: <AutoAwesomeIcon fontSize="small" /> },
+  { to: '/merchants', label: 'Merchants', icon: <StorefrontIcon fontSize="small" /> },
   { to: '/missions', label: 'Missions', icon: <MapIcon fontSize="small" /> },
   { to: '/players', label: 'Players', icon: <CasinoIcon fontSize="small" /> },
   { to: '/sessions', label: 'Sessions', icon: <HistoryIcon fontSize="small" /> },

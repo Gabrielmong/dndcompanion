@@ -18,6 +18,8 @@ import Characters from './pages/Characters'
 import CharacterDetail from './pages/CharacterDetail'
 import Decisions from './pages/Decisions'
 import Items from './pages/Items'
+import Merchants from './pages/Merchants'
+import MerchantDetail from './pages/MerchantDetail'
 import Factions from './pages/Factions'
 import SessionActive from './pages/SessionActive'
 import PlayerView from './pages/PlayerView'
@@ -59,6 +61,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                   <Route path="/characters/:id" element={<CharacterDetail />} />
                   <Route path="/decisions" element={<Decisions />} />
                   <Route path="/items" element={<Items />} />
+                  <Route path="/merchants" element={<Merchants />} />
+                  <Route path="/merchants/:id" element={<MerchantDetail />} />
                   <Route path="/factions" element={<Factions />} />
                   <Route path="/session/:id" element={<SessionActive />} />
                   <Route path="/encounters" element={<Encounters />} />

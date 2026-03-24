@@ -58,6 +58,7 @@ model Campaign {
   decisions             Decision[]
   sessions              Session[]
   missions              Mission[]
+  merchants             Merchant[]
   encounters            Encounter[]
   wikiPages             WikiPage[]
   rollLogs              RollLog[]
@@ -192,6 +193,41 @@ model Item {
   updatedAt         DateTime       @updatedAt @map("updated_at")
 
   @@map("items")
+}
+
+model Merchant {
+  id          String         @id @default(uuid()) @db.Uuid
+  campaignId  String         @map("campaign_id") @db.Uuid
+  campaign    Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  name        String
+  type        String         @default("general")
+  region      String
+  description String?
+  wares       MerchantWare[]
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  @@map("merchants")
+}
+
+model MerchantWare {
+  id          String   @id @default(uuid()) @db.Uuid
+  merchantId  String   @map("merchant_id") @db.Uuid
+  merchant    Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  name        String
+  category    String   @default("misc")
+  description String?
+  price       Float    @default(0)
+  stock       Int      @default(-1)
+  maxStock    Int      @default(-1) @map("max_stock")
+  rarity      String?
+  available   Boolean  @default(true)
+  haggleCD    Int?     @map("haggle_cd")
+  notes       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("merchant_wares")
 }
 
 model Decision {

@@ -240,6 +240,35 @@ type Item {
   updatedAt: DateTime!
 }
 
+type Merchant {
+  id: ID!
+  campaignId: ID!
+  name: String!
+  type: String!
+  region: String!
+  description: String
+  wares: [MerchantWare!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type MerchantWare {
+  id: ID!
+  merchantId: ID!
+  name: String!
+  category: String!
+  description: String
+  price: Float!
+  stock: Int!
+  maxStock: Int!
+  rarity: String
+  available: Boolean!
+  haggleCD: Int
+  notes: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
 type Decision {
   id: ID!
   campaign: Campaign!
@@ -445,6 +474,10 @@ type Query {
   sessions(campaignId: ID!): [Session!]!
   activeSession(campaignId: ID!): Session
 
+  # Merchants
+  merchants(campaignId: ID!): [Merchant!]!
+  merchant(id: ID!): Merchant
+
   # Items
   items(campaignId: ID!, inPossession: Boolean, type: ItemType): [Item!]!
 
@@ -495,6 +528,17 @@ type Mutation {
   unresolveDecision(id: ID!): Decision!   # undo — for corrections during session
   addDecisionLink(fromDecisionId: ID!, toDecisionId: ID!, fromBranchId: ID): DecisionLink!
   removeDecisionLink(id: ID!): Boolean!
+
+  # Merchants
+  createMerchant(input: CreateMerchantInput!): Merchant!
+  updateMerchant(id: ID!, input: UpdateMerchantInput!): Merchant!
+  deleteMerchant(id: ID!): Boolean!
+  duplicateMerchant(id: ID!): Merchant!
+  createWare(input: CreateWareInput!): MerchantWare!
+  updateWare(id: ID!, input: UpdateWareInput!): MerchantWare!
+  deleteWare(id: ID!): Boolean!
+  sellWare(id: ID!, qty: Int): MerchantWare!
+  restockMerchant(id: ID!): Merchant!
 
   # Factions
   createFaction(input: CreateFactionInput!): Faction!
@@ -649,6 +693,48 @@ input CreateCharacterStateInput {
   stateLabel: String
   description: String!
   statusChange: CharacterStatus
+}
+
+input CreateMerchantInput {
+  campaignId: ID!
+  name: String!
+  type: String
+  region: String!
+  description: String
+}
+
+input UpdateMerchantInput {
+  name: String
+  type: String
+  region: String
+  description: String
+}
+
+input CreateWareInput {
+  merchantId: ID!
+  name: String!
+  category: String
+  description: String
+  price: Float
+  stock: Int
+  maxStock: Int
+  rarity: String
+  available: Boolean
+  haggleCD: Int
+  notes: String
+}
+
+input UpdateWareInput {
+  name: String
+  category: String
+  description: String
+  price: Float
+  stock: Int
+  maxStock: Int
+  rarity: String
+  available: Boolean
+  haggleCD: Int
+  notes: String
 }
 
 input CreateFactionInput {
