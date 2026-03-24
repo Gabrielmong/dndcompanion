@@ -109,7 +109,8 @@ export const analyticsResolvers = {
       // Character roll stats
       const statsByChar = new Map<string, { total: number; nat20: number; nat1: number; sum: number }>()
       rollLogs.forEach((r) => {
-        const key = r.characterName
+        // Normalize "Name (DM)" → "Name" so DM rolls group with the same user's rolls
+        const key = (r.characterName ?? '').replace(/\s*\(DM\)$/i, '') || (r.characterName ?? 'Unknown')
         const cur = statsByChar.get(key) ?? { total: 0, nat20: 0, nat1: 0, sum: 0 }
         cur.total++
         cur.sum += r.total
