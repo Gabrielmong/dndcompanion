@@ -88,7 +88,7 @@ export default function CampaignsList() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 5, flexWrap: 'wrap', gap: 1.5 }}>
         <Box>
           <Typography variant="h3" sx={{ fontFamily: '"Cinzel", serif', color: '#c8a44a', mb: 0.5, fontSize: { xs: '1.8rem', sm: '3rem' } }}>
-            The Companion
+            Lorestone
           </Typography>
           {user && (
             <Typography sx={{ color: '#786c5c', fontSize: '0.9rem' }}>

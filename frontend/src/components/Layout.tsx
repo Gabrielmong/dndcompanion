@@ -112,7 +112,7 @@ function DrawerContent({ onNavigate, hasAppBar }: { onNavigate?: () => void; has
           </Typography>
         </Box>
         <Typography variant="h6" sx={{ fontFamily: '"Cinzel", serif', color: '#c8a44a', lineHeight: 1.2, fontSize: '0.95rem' }}>
-          {campaignName ?? 'The Companion'}
+          {campaignName ?? 'Lorestone'}
         </Typography>
         {user && (
           <Typography variant="caption" sx={{ color: '#786c5c', fontSize: '0.68rem' }}>
@@ -263,7 +263,7 @@ export default function Layout() {
               <MenuIcon />
             </IconButton>
             <Typography sx={{ fontFamily: '"Cinzel", serif', color: '#c8a44a', fontSize: '0.9rem', flex: 1 }}>
-              {campaignName ?? 'The Companion'}
+              {campaignName ?? 'Lorestone'}
             </Typography>
           </Toolbar>
         </AppBar>

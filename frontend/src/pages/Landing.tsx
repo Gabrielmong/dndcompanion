@@ -744,7 +744,7 @@ function MockPlayerView() {
           <Box sx={{ mt: 3, display: 'flex', alignItems: 'center', gap: 1, p: 1.25, bgcolor: '#111009', borderRadius: 1, border: '1px dashed rgba(200,164,74,0.2)' }}>
             <ShareIcon sx={{ fontSize: 14, color: '#786c5c', flexShrink: 0 }} />
             <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.65rem', color: '#786c5c', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              companion.app/play/a3f8c2e1…
+              lorestone.app/play/a3f8c2e1…
             </Typography>
             <Chip label="Copy Link" size="small" sx={{ ml: 'auto', flexShrink: 0, bgcolor: 'transparent', color: '#c8a44a', border: '1px solid rgba(200,164,74,0.3)', fontFamily: '"JetBrains Mono", monospace', fontSize: '0.62rem' }} />
           </Box>
@@ -875,7 +875,7 @@ export default function Landing() {
       {/* Nav */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: { xs: 3, md: 6 }, py: 2.5, borderBottom: '1px solid rgba(120,108,92,0.15)' }}>
         <Typography sx={{ fontFamily: '"Cinzel", serif', color: '#c8a44a', fontWeight: 700, fontSize: '1.1rem', letterSpacing: '0.04em' }}>
-          The Companion
+          Lorestone
         </Typography>
         <Box sx={{ display: 'flex', gap: 1.5 }}>
           {isLoggedIn ? (
@@ -1086,7 +1086,7 @@ export default function Landing() {
           Everything the DM Needs
         </Typography>
         <Typography sx={{ color: '#786c5c', textAlign: 'center', mb: 5, maxWidth: 480, mx: 'auto' }}>
-          From the first session to the final boss — The Companion keeps your world organized.
+          From the first session to the final boss — Lorestone keeps your campaign organized.
         </Typography>
         <Box sx={{ maxWidth: 1100, mx: 'auto' }}>
           <Grid container spacing={{ xs: 2, md: 2.5 }}>
@@ -1123,7 +1123,7 @@ export default function Landing() {
       {/* Footer */}
       <Box sx={{ borderTop: '1px solid rgba(120,108,92,0.1)', px: { xs: 2, md: 6 }, py: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
         <Typography sx={{ fontFamily: '"Cinzel", serif', color: '#3a332a', fontSize: '0.85rem' }}>
-          The Companion
+          Lorestone
         </Typography>
         <Typography sx={{ color: '#3a332a', fontSize: '0.75rem', fontFamily: '"JetBrains Mono", monospace' }}>
           Built for DMs, by a DM.

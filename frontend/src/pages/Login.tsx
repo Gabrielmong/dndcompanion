@@ -64,7 +64,7 @@ export default function Login() {
       <Card sx={{ width: '100%', maxWidth: 380, border: '1px solid rgba(200,164,74,0.3)' }}>
         <CardContent sx={{ p: 4 }}>
           <Typography variant="h4" sx={{ mb: 0.5, textAlign: 'center', color: '#c8a44a' }}>
-            The Companion
+            Lorestone
           </Typography>
           <Typography variant="body2" sx={{ textAlign: 'center', color: '#786c5c', mb: 3, fontSize: '0.85rem' }}>
             TTRPG Campaign Manager
