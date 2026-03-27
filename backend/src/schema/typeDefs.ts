@@ -10,6 +10,7 @@ const extensions = `
     name: String!
     dateOfBirth: Date
     avatarUrl: String
+    googleLinked: Boolean!
     campaigns: [Campaign!]!
     createdAt: DateTime!
   }
@@ -17,6 +18,7 @@ const extensions = `
   type AuthPayload {
     token: String!
     user: User!
+    linked: Boolean
   }
 
   type PlayerView {
@@ -119,7 +121,18 @@ const extensions = `
     name: String!
     url: String!
     key: String!
+    lootMarkers: [MapLootMarker!]!
     createdAt: DateTime!
+  }
+
+  type MapLootMarker {
+    id: ID!
+    mapId: ID!
+    x: Float!
+    y: Float!
+    label: String
+    itemIds: [ID!]!
+    items: [Item!]!
   }
 
   input UpdateChapterInput {
@@ -309,6 +322,8 @@ const extensions = `
   extend type Mutation {
     register(email: String!, password: String!, name: String!): AuthPayload!
     login(email: String!, password: String!): AuthPayload!
+    googleLogin(idToken: String!): AuthPayload!
+    linkGoogleAccount(idToken: String!): User!
     updateProfile(name: String, dateOfBirth: Date, avatarUrl: String): User!
     changePassword(currentPassword: String!, newPassword: String!): Boolean!
     logRoll(input: LogRollInput!): RollLog!
@@ -342,7 +357,11 @@ const extensions = `
 
     # Mission maps
     addMissionMap(missionId: ID!, name: String!, url: String!, key: String!): MissionMap!
+    renameMissionMap(id: ID!, name: String!): MissionMap!
     deleteMissionMap(id: ID!): Boolean!
+    createMapLootMarker(mapId: ID!, x: Float!, y: Float!): MapLootMarker!
+    updateMapLootMarker(id: ID!, x: Float, y: Float, label: String, itemIds: [ID!]): MapLootMarker!
+    deleteMapLootMarker(id: ID!): Boolean!
 
     # Wiki
     createWikiPage(input: CreateWikiPageInput!): WikiPage!

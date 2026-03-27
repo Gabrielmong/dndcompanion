@@ -4,7 +4,7 @@ import { Loaders } from '../../loaders'
 export interface Context {
   prisma: PrismaClient
   loaders: Loaders
-  user: { id: string; email: string; name: string; passwordHash: string; createdAt: Date; updatedAt: Date } | null
+  user: { id: string; email: string; name: string; passwordHash: string | null; googleId: string | null; dateOfBirth: Date | null; avatarUrl: string | null; createdAt: Date; updatedAt: Date } | null
 }
 
 export function requireAuth(ctx: Context) {

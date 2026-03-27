@@ -88,6 +88,26 @@ export const missionResolvers = {
         data: { missionId: args.missionId, name: args.name, url: args.url, key: args.key },
       }),
 
+    createMapLootMarker: (_: unknown, args: { mapId: string; x: number; y: number }, ctx: Context) =>
+      ctx.prisma.mapLootMarker.create({ data: { mapId: args.mapId, x: args.x, y: args.y } }),
+
+    updateMapLootMarker: (_: unknown, args: { id: string; x?: number; y?: number; label?: string | null; itemIds?: string[] }, ctx: Context) => {
+      const data: Record<string, unknown> = {}
+      if (args.x !== undefined) data.x = args.x
+      if (args.y !== undefined) data.y = args.y
+      if (args.label !== undefined) data.label = args.label
+      if (args.itemIds !== undefined) data.itemIds = args.itemIds
+      return ctx.prisma.mapLootMarker.update({ where: { id: args.id }, data })
+    },
+
+    deleteMapLootMarker: async (_: unknown, args: { id: string }, ctx: Context) => {
+      await ctx.prisma.mapLootMarker.delete({ where: { id: args.id } })
+      return true
+    },
+
+    renameMissionMap: (_: unknown, args: { id: string; name: string }, ctx: Context) =>
+      ctx.prisma.missionMap.update({ where: { id: args.id }, data: { name: args.name } }),
+
     deleteMissionMap: async (_: unknown, args: { id: string }, ctx: Context) => {
       const map = await ctx.prisma.missionMap.findUnique({ where: { id: args.id } })
       if (!map) return false
@@ -138,5 +158,15 @@ export const missionResolvers = {
 
   MissionMap: {
     missionId: (m: { missionId: string }) => m.missionId,
+    lootMarkers: (m: { id: string }, _: unknown, ctx: Context) =>
+      ctx.prisma.mapLootMarker.findMany({ where: { mapId: m.id }, orderBy: { createdAt: 'asc' } }),
+  },
+
+  MapLootMarker: {
+    items: async (marker: { itemIds: string[] }, _: unknown, ctx: Context) => {
+      if (!marker.itemIds?.length) return []
+      const items = await ctx.prisma.item.findMany({ where: { id: { in: marker.itemIds } } })
+      return marker.itemIds.map((id) => items.find((i) => i.id === id)).filter(Boolean)
+    },
   },
 }

@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import { fadeIn, slideUp } from '../utils/motion'
 import {
   Box, Typography, TextField, Button, Alert, Divider,
-  CircularProgress, IconButton, Tooltip, Paper,
+  CircularProgress, IconButton, Tooltip, Paper, Chip,
 } from '@mui/material'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import EditIcon from '@mui/icons-material/Edit'
@@ -14,13 +14,23 @@ import CloseIcon from '@mui/icons-material/Close'
 import LockIcon from '@mui/icons-material/Lock'
 import PersonIcon from '@mui/icons-material/Person'
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera'
+import LinkIcon from '@mui/icons-material/Link'
+import { GoogleLogin } from '@react-oauth/google'
 import { useAuthStore } from '../store/auth'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000'
 
 const ME = gql`
   query MeProfile {
-    me { id email name dateOfBirth avatarUrl createdAt }
+    me { id email name dateOfBirth avatarUrl googleLinked createdAt }
+  }
+`
+
+const LINK_GOOGLE = gql`
+  mutation LinkGoogleAccount($idToken: String!) {
+    linkGoogleAccount(idToken: $idToken) {
+      id googleLinked
+    }
   }
 `
 
@@ -118,6 +128,10 @@ export default function Profile() {
   const { data, loading, refetch } = useQuery(ME)
   const [updateProfile, { loading: saving }] = useMutation(UPDATE_PROFILE)
   const [changePassword, { loading: changingPw }] = useMutation(CHANGE_PASSWORD)
+  const [linkGoogle] = useMutation(LINK_GOOGLE)
+
+  const [linkError, setLinkError] = useState('')
+  const [linkSuccess, setLinkSuccess] = useState('')
 
   const avatarInputRef = useRef<HTMLInputElement>(null)
   const [avatarUploading, setAvatarUploading] = useState(false)
@@ -192,6 +206,19 @@ export default function Profile() {
       await updateProfile({ variables: { avatarUrl: url } })
       refetch()
     } catch { /* silent */ } finally { setAvatarUploading(false) }
+  }
+
+  const handleLinkGoogle = async (credentialResponse: { credential?: string }) => {
+    if (!credentialResponse.credential) return
+    setLinkError('')
+    setLinkSuccess('')
+    try {
+      await linkGoogle({ variables: { idToken: credentialResponse.credential } })
+      setLinkSuccess('Google account linked successfully.')
+      refetch()
+    } catch (e: unknown) {
+      setLinkError(e instanceof Error ? e.message : 'Failed to link Google account')
+    }
   }
 
   const dobDisplay = me?.dateOfBirth ? new Date(me.dateOfBirth).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }) : ''
@@ -325,6 +352,44 @@ export default function Profile() {
                   <CircularProgress size={16} sx={{ color: '#c8a44a' }} />
                 </Box>
               )}
+            </Paper>
+
+            {/* Linked Accounts section */}
+            <Paper
+              elevation={0}
+              sx={{ p: 3, mb: 2.5, bgcolor: '#111009', border: '1px solid rgba(120,108,92,0.25)', borderRadius: 2 }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2.5 }}>
+                <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: '#1a160f', border: '1px solid rgba(200,164,74,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <LinkIcon sx={{ color: '#c8a44a', fontSize: 18 }} />
+                </Box>
+                <Typography variant="h6" sx={{ fontFamily: '"Cinzel", serif', color: '#e6d8c0', fontSize: '1rem' }}>
+                  Linked Accounts
+                </Typography>
+              </Box>
+
+              {linkError && <Alert severity="error" sx={{ mb: 1.5, py: 0 }}>{linkError}</Alert>}
+              {linkSuccess && <Alert severity="success" sx={{ mb: 1.5, py: 0 }}>{linkSuccess}</Alert>}
+
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Box component="img" src="https://www.google.com/favicon.ico" alt="Google" sx={{ width: 18, height: 18 }} />
+                  <Typography sx={{ fontSize: '0.9rem', color: '#e6d8c0' }}>Google</Typography>
+                  {me?.googleLinked && (
+                    <Chip label="Linked" size="small" sx={{ bgcolor: 'rgba(98,168,112,0.15)', color: '#62a870', border: '1px solid rgba(98,168,112,0.3)', fontSize: '0.7rem', height: 20 }} />
+                  )}
+                </Box>
+                {!me?.googleLinked && (
+                  <GoogleLogin
+                    onSuccess={handleLinkGoogle}
+                    onError={() => setLinkError('Google sign-in failed')}
+                    theme="filled_black"
+                    shape="rectangular"
+                    size="small"
+                    text="signin_with"
+                  />
+                )}
+              </Box>
             </Paper>
 
             {/* Security section */}

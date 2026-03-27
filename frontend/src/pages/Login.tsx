@@ -10,8 +10,11 @@ import {
   Typography,
   Alert,
   CircularProgress,
+  Divider,
 } from '@mui/material'
+import { GoogleLogin } from '@react-oauth/google'
 import { useAuthStore } from '../store/auth'
+import { useUiStore } from '../store/ui'
 import { useCampaign } from '../context/campaign'
 
 const LOGIN = gql`
@@ -23,9 +26,20 @@ const LOGIN = gql`
   }
 `
 
+const GOOGLE_LOGIN = gql`
+  mutation GoogleLogin($idToken: String!) {
+    googleLogin(idToken: $idToken) {
+      token
+      linked
+      user { id email name }
+    }
+  }
+`
+
 export default function Login() {
   const navigate = useNavigate()
   const { setAuth } = useAuthStore()
+  const { setShowGoogleLinkedModal } = useUiStore()
 
   const token = useAuthStore((s) => s.token)
   useEffect(() => {
@@ -37,6 +51,20 @@ export default function Login() {
   const [error, setError] = useState('')
 
   const [login, { loading }] = useMutation(LOGIN)
+  const [googleLogin] = useMutation(GOOGLE_LOGIN)
+
+  const handleGoogleSuccess = async (credentialResponse: { credential?: string }) => {
+    if (!credentialResponse.credential) return
+    setError('')
+    try {
+      const { data } = await googleLogin({ variables: { idToken: credentialResponse.credential } })
+      setAuth(data.googleLogin.user, data.googleLogin.token)
+      if (data.googleLogin.linked) setShowGoogleLinkedModal(true)
+      navigate('/')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Google sign-in failed')
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -100,6 +128,19 @@ export default function Login() {
             >
               {loading ? <CircularProgress size={20} /> : 'Enter the table'}
             </Button>
+          </Box>
+
+          <Divider sx={{ my: 2, borderColor: 'rgba(200,164,74,0.15)', fontSize: '0.75rem', color: '#4a4035' }}>or</Divider>
+
+          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setError('Google sign-in failed')}
+              theme="filled_black"
+              shape="rectangular"
+              size="large"
+              width="320"
+            />
           </Box>
 
           <Typography variant="body2" sx={{ textAlign: 'center', mt: 2, color: '#786c5c', fontSize: '0.85rem' }}>

@@ -128,7 +128,7 @@ Nothing is shared unless the DM explicitly publishes it.
 ### Authentication
 - Password reset flow (email link)
 - Email verification on signup
-- OAuth — Google login to reduce signup friction
+- ~~OAuth — Google login to reduce signup friction~~
 - Session expiry & refresh token handling
 
 ### Email (transactional)

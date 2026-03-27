@@ -71,6 +71,7 @@ export const resolvers = {
   Item: itemResolvers.Item,
   Mission: missionResolvers.Mission,
   MissionMap: missionResolvers.MissionMap,
+  MapLootMarker: missionResolvers.MapLootMarker,
   Encounter: encounterResolvers.Encounter,
   EncounterParticipant: encounterResolvers.EncounterParticipant,
   User: authResolvers.User,

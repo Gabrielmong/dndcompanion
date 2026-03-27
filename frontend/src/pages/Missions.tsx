@@ -37,7 +37,9 @@ import NavigateNextIcon from '@mui/icons-material/NavigateNext'
 import MapIcon from '@mui/icons-material/Map'
 import LinkIcon from '@mui/icons-material/Link'
 import LinkOffIcon from '@mui/icons-material/LinkOff'
+import Inventory2Icon from '@mui/icons-material/Inventory2'
 import { useCampaign } from '../context/campaign'
+import MapLootOverlay, { LootMarker } from '../components/MapLootOverlay'
 
 // ── GraphQL ────────────────────────────────────────────────────────────────────
 
@@ -52,7 +54,7 @@ const MISSIONS = gql`
     missions(campaignId: $campaignId) {
       id name type status description content orderIndex
       chapter { id name }
-      maps { id name url key }
+      maps { id name url key lootMarkers { id mapId x y label itemIds items { id name type } } }
       decisions { id question status }
       items { id name type description }
     }
@@ -130,7 +132,7 @@ const CAMPAIGN_ITEMS = gql`
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type MissionMap = { id: string; name: string; url: string; key: string }
+type MissionMap = { id: string; name: string; url: string; key: string; lootMarkers: LootMarker[] }
 type LinkedDecision = { id: string; question: string; status: string }
 type LootItem = { id: string; name: string; type: string; description?: string | null }
 type Mission = {
@@ -247,7 +249,7 @@ function Section({ title, icon, count, children, defaultOpen = true }: {
 
 // ── Mission Editor ─────────────────────────────────────────────────────────────
 
-function MissionEditor({ mission, allDecisions, allItems, chapters, onSave, onAddMap, onDeleteMap, onLinkDecision, onUnlinkDecision, onLinkItem, onUnlinkItem, uploadUrl }: {
+function MissionEditor({ mission, allDecisions, allItems, chapters, onSave, onAddMap, onDeleteMap, onLinkDecision, onUnlinkDecision, onLinkItem, onUnlinkItem, onMapOverlayClosed, uploadUrl }: {
   mission: Mission
   allDecisions: { id: string; question: string; status: string }[]
   allItems: { id: string; name: string; type: string; description?: string | null }[]
@@ -259,6 +261,7 @@ function MissionEditor({ mission, allDecisions, allItems, chapters, onSave, onAd
   onUnlinkDecision: (decisionId: string) => void
   onLinkItem: (itemId: string, missionId: string) => void
   onUnlinkItem: (itemId: string) => void
+  onMapOverlayClosed: () => void
   uploadUrl: string
 }) {
   const editorTheme = useTheme()
@@ -278,7 +281,7 @@ function MissionEditor({ mission, allDecisions, allItems, chapters, onSave, onAd
   const [pageSearch, setPageSearch] = useState('')
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null)
   const savedSel = useRef<{ from: number; to: number } | null>(null)
-  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
+  const [lootOverlayMap, setLootOverlayMap] = useState<MissionMap | null>(null)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [showLinkDecision, setShowLinkDecision] = useState(false)
@@ -432,10 +435,17 @@ function MissionEditor({ mission, allDecisions, allItems, chapters, onSave, onAd
           <>
             <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0.75, mb: 1 }}>
               {mission.maps.map((map, i) => (
-                <Box key={map.id} sx={{ position: 'relative', aspectRatio: '4/3', borderRadius: 1, overflow: 'hidden', cursor: 'pointer', '&:hover .map-del': { opacity: 1 }, '&:hover img': { filter: 'brightness(0.7)' } }}
-                  onClick={() => setLightboxIdx(i)}>
+                <Box key={map.id} sx={{ position: 'relative', aspectRatio: '4/3', borderRadius: 1, overflow: 'hidden', cursor: 'pointer', '&:hover .map-del': { opacity: 1 }, '&:hover .map-loot': { opacity: 1 }, '&:hover img': { filter: 'brightness(0.7)' } }}
+                  onClick={() => setLootOverlayMap(map)}>
                   <Box component="img" src={map.url} alt={map.name} sx={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'filter 0.15s', display: 'block' }} />
                   <Typography sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, px: 0.5, py: 0.25, fontSize: '0.6rem', color: '#e6d8c0', bgcolor: 'rgba(0,0,0,0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{map.name}</Typography>
+                  {/* Loot marker count badge */}
+                  {map.lootMarkers?.length > 0 && (
+                    <Box sx={{ position: 'absolute', top: 4, left: 4, bgcolor: 'rgba(200,164,74,0.9)', borderRadius: 0.75, px: 0.75, py: 0.1, display: 'flex', alignItems: 'center', gap: 0.4, pointerEvents: 'none' }}>
+                      <Inventory2Icon sx={{ fontSize: 9, color: '#0b0906' }} />
+                      <Typography sx={{ fontSize: '0.55rem', color: '#0b0906', fontWeight: 700, lineHeight: '16px' }}>{map.lootMarkers.length}</Typography>
+                    </Box>
+                  )}
                   <IconButton className="map-del" size="small" onClick={(e) => { e.stopPropagation(); onDeleteMap(map.id) }}
                     sx={{ position: 'absolute', top: 2, right: 2, p: 0.25, color: '#fff', bgcolor: 'rgba(184,72,72,0.8)', opacity: 0, transition: 'opacity 0.15s', '&:hover': { bgcolor: 'rgba(184,72,72,1)' } }}>
                     <DeleteIcon sx={{ fontSize: 11 }} />
@@ -745,8 +755,16 @@ function MissionEditor({ mission, allDecisions, allItems, chapters, onSave, onAd
       </Box>
 
       {/* Lightbox */}
-      {lightboxIdx !== null && (
-        <MapLightbox maps={mission.maps} initialIndex={lightboxIdx} onClose={() => setLightboxIdx(null)} />
+      {lootOverlayMap && (
+        <MapLootOverlay
+          open={!!lootOverlayMap}
+          onClose={() => { setLootOverlayMap(null); onMapOverlayClosed() }}
+          map={lootOverlayMap}
+          initialMarkers={lootOverlayMap.lootMarkers ?? []}
+          allItems={allItems}
+          missionId={mission.id}
+          onMarkersChanged={() => {}}
+        />
       )}
 
       {/* Context menu */}
@@ -1038,6 +1056,7 @@ export default function Missions() {
               onUnlinkDecision={handleUnlinkDecision}
               onLinkItem={handleLinkItem}
               onUnlinkItem={handleUnlinkItem}
+              onMapOverlayClosed={refetch}
               uploadUrl={uploadUrl}
             />
           ) : (

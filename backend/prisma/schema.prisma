@@ -10,7 +10,8 @@ datasource db {
 model User {
   id           String     @id @default(uuid()) @db.Uuid
   email        String     @unique
-  passwordHash String     @map("password_hash")
+  passwordHash String?    @map("password_hash")
+  googleId     String?    @unique @map("google_id")
   name         String
   dateOfBirth  DateTime?  @map("date_of_birth") @db.Date
   avatarUrl    String?    @map("avatar_url")
@@ -380,15 +381,30 @@ model Mission {
 }
 
 model MissionMap {
-  id        String   @id @default(uuid()) @db.Uuid
-  missionId String   @map("mission_id") @db.Uuid
-  mission   Mission  @relation(fields: [missionId], references: [id], onDelete: Cascade)
-  name      String   @default("Map")
-  url       String
-  key       String
-  createdAt DateTime @default(now()) @map("created_at")
+  id          String           @id @default(uuid()) @db.Uuid
+  missionId   String           @map("mission_id") @db.Uuid
+  mission     Mission          @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  name        String           @default("Map")
+  url         String
+  key         String
+  lootMarkers MapLootMarker[]
+  createdAt   DateTime         @default(now()) @map("created_at")
 
   @@map("mission_maps")
+}
+
+model MapLootMarker {
+  id        String     @id @default(uuid()) @db.Uuid
+  mapId     String     @map("map_id") @db.Uuid
+  map       MissionMap @relation(fields: [mapId], references: [id], onDelete: Cascade)
+  x         Float
+  y         Float
+  label     String?
+  itemIds   String[]   @default([]) @map("item_ids")
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  @@map("map_loot_markers")
 }
 
 model Encounter {

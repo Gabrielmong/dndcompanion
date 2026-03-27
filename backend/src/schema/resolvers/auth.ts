@@ -1,7 +1,10 @@
 import bcrypt from 'bcryptjs'
+import { OAuth2Client } from 'google-auth-library'
 import { GraphQLError } from 'graphql'
 import { signToken } from '../../auth/jwt'
 import type { Context } from './types'
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
 
 export const authResolvers = {
   Query: {
@@ -28,6 +31,8 @@ export const authResolvers = {
       const user = await ctx.prisma.user.findUnique({ where: { email: args.email } })
       if (!user) throw new GraphQLError('Invalid credentials', { extensions: { code: 'UNAUTHENTICATED' } })
 
+      if (!user.passwordHash) throw new GraphQLError('This account uses Google Sign-In', { extensions: { code: 'BAD_USER_INPUT' } })
+
       const valid = await bcrypt.compare(args.password, user.passwordHash)
       if (!valid) throw new GraphQLError('Invalid credentials', { extensions: { code: 'UNAUTHENTICATED' } })
 
@@ -46,10 +51,43 @@ export const authResolvers = {
       })
     },
 
+    googleLogin: async (_: unknown, args: { idToken: string }, ctx: Context) => {
+      const ticket = await googleClient.verifyIdToken({
+        idToken: args.idToken,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      }).catch(() => {
+        throw new GraphQLError('Invalid Google token', { extensions: { code: 'UNAUTHENTICATED' } })
+      })
+
+      const payload = ticket.getPayload()
+      if (!payload?.email) throw new GraphQLError('Google account has no email', { extensions: { code: 'BAD_USER_INPUT' } })
+
+      const { email, name, sub: googleId } = payload
+
+      let user = await ctx.prisma.user.findUnique({ where: { googleId } })
+      let linked = false
+
+      if (!user) {
+        // Check if email already exists (link accounts)
+        const existing = await ctx.prisma.user.findUnique({ where: { email } })
+        if (existing) {
+          user = await ctx.prisma.user.update({ where: { id: existing.id }, data: { googleId } })
+          linked = true
+        } else {
+          user = await ctx.prisma.user.create({
+            data: { email, name: name ?? email, googleId },
+          })
+        }
+      }
+
+      return { token: signToken(user.id), user, linked }
+    },
+
     changePassword: async (_: unknown, args: { currentPassword: string; newPassword: string }, ctx: Context) => {
       if (!ctx.user) throw new GraphQLError('Not authenticated', { extensions: { code: 'UNAUTHENTICATED' } })
       const user = await ctx.prisma.user.findUnique({ where: { id: ctx.user.id } })
       if (!user) throw new GraphQLError('User not found')
+      if (!user.passwordHash) throw new GraphQLError('This account uses Google Sign-In', { extensions: { code: 'BAD_USER_INPUT' } })
       const valid = await bcrypt.compare(args.currentPassword, user.passwordHash)
       if (!valid) throw new GraphQLError('Current password is incorrect', { extensions: { code: 'BAD_USER_INPUT' } })
       if (args.newPassword.length < 8) throw new GraphQLError('Password must be at least 8 characters', { extensions: { code: 'BAD_USER_INPUT' } })
@@ -57,9 +95,31 @@ export const authResolvers = {
       await ctx.prisma.user.update({ where: { id: ctx.user.id }, data: { passwordHash } })
       return true
     },
+
+    linkGoogleAccount: async (_: unknown, args: { idToken: string }, ctx: Context) => {
+      if (!ctx.user) throw new GraphQLError('Not authenticated', { extensions: { code: 'UNAUTHENTICATED' } })
+
+      const ticket = await googleClient.verifyIdToken({
+        idToken: args.idToken,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      }).catch(() => {
+        throw new GraphQLError('Invalid Google token', { extensions: { code: 'UNAUTHENTICATED' } })
+      })
+
+      const payload = ticket.getPayload()
+      if (!payload?.sub) throw new GraphQLError('Invalid Google token', { extensions: { code: 'UNAUTHENTICATED' } })
+
+      const existing = await ctx.prisma.user.findUnique({ where: { googleId: payload.sub } })
+      if (existing && existing.id !== ctx.user.id) {
+        throw new GraphQLError('This Google account is already linked to another user', { extensions: { code: 'BAD_USER_INPUT' } })
+      }
+
+      return ctx.prisma.user.update({ where: { id: ctx.user.id }, data: { googleId: payload.sub } })
+    },
   },
 
   User: {
+    googleLinked: (user: { googleId?: string | null }) => !!user.googleId,
     campaigns: (user: { id: string }, _: unknown, ctx: Context) =>
       ctx.prisma.campaign.findMany({ where: { userId: user.id }, orderBy: { createdAt: 'desc' } }),
   },

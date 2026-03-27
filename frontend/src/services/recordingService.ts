@@ -154,7 +154,16 @@ class RecordingService {
     const alt = data?.channel?.alternatives?.[0]
     if (!alt?.transcript?.trim()) return
     const text: string = alt.transcript.trim()
-    const speakerId: number = data.speaker ?? 0
+
+    // Deepgram puts speaker IDs at the word level — pick the most frequent one in this utterance
+    const words: { speaker?: number }[] = alt.words ?? []
+    const speakerCounts: Record<number, number> = {}
+    for (const w of words) {
+      if (w.speaker != null) speakerCounts[w.speaker] = (speakerCounts[w.speaker] ?? 0) + 1
+    }
+    const speakerId: number = words.length
+      ? Number(Object.entries(speakerCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 0)
+      : 0
     const startTime = (Date.now() - this.sessionStartMs) / 1000
     const { speakerMap } = useRecordingStore.getState()
     const speakerName = speakerMap[speakerId] ?? null

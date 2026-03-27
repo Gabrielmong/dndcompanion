@@ -3,12 +3,14 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { ApolloProvider } from '@apollo/client'
 import { ThemeProvider, CssBaseline } from '@mui/material'
+import { GoogleOAuthProvider } from '@react-oauth/google'
 import { client } from './apollo'
 import theme from './theme'
 import { CampaignProvider } from './context/campaign'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 import DiceRoller from './components/DiceRoller'
+import GoogleLinkedModal from './components/GoogleLinkedModal'
 
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -36,10 +38,12 @@ import Analytics from './pages/Analytics'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
     <ApolloProvider client={client}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <DiceRoller />
+        <GoogleLinkedModal />
         <CampaignProvider>
           <BrowserRouter>
             <Routes>
@@ -85,5 +89,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         </CampaignProvider>
       </ThemeProvider>
     </ApolloProvider>
+    </GoogleOAuthProvider>
   </React.StrictMode>
 )
