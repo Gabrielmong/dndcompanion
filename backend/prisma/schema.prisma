@@ -8,17 +8,21 @@ datasource db {
 }
 
 model User {
-  id           String     @id @default(uuid()) @db.Uuid
-  email        String     @unique
-  passwordHash String?    @map("password_hash")
-  googleId     String?    @unique @map("google_id")
-  name         String
-  dateOfBirth  DateTime?  @map("date_of_birth") @db.Date
-  avatarUrl    String?    @map("avatar_url")
-  campaigns    Campaign[]
-  diceSets     DiceSet[]
-  createdAt    DateTime   @default(now()) @map("created_at")
-  updatedAt    DateTime   @updatedAt @map("updated_at")
+  id                 String     @id @default(uuid()) @db.Uuid
+  email              String     @unique
+  passwordHash       String?    @map("password_hash")
+  googleId           String?    @unique @map("google_id")
+  name               String
+  dateOfBirth        DateTime?  @map("date_of_birth") @db.Date
+  avatarUrl          String?    @map("avatar_url")
+  emailVerified      Boolean    @default(false) @map("email_verified")
+  verificationToken  String?    @unique @map("verification_token")
+  resetToken         String?    @unique @map("reset_token")
+  resetTokenExpiry   DateTime?  @map("reset_token_expiry")
+  campaigns          Campaign[]
+  diceSets           DiceSet[]
+  createdAt          DateTime   @default(now()) @map("created_at")
+  updatedAt          DateTime   @updatedAt @map("updated_at")
 
   @@map("users")
 }
@@ -67,6 +71,7 @@ model Campaign {
   characterHPSnapshots  CharacterHPSnapshot[]
   encounterStats        EncounterStat[]
   sessionTreasures      SessionTreasure[]
+  rumors                Rumor[]
   createdAt             DateTime              @default(now()) @map("created_at")
   updatedAt             DateTime              @updatedAt @map("updated_at")
 
@@ -88,6 +93,7 @@ model Chapter {
   sessions     Session[]
   missions     Mission[]
   itemsFound   Item[]      @relation("ItemFound")
+  rumors       Rumor[]
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
 
@@ -572,4 +578,21 @@ model SessionTranscript {
 
   @@index([sessionId])
   @@map("session_transcripts")
+}
+
+model Rumor {
+  id         String    @id @default(uuid()) @db.Uuid
+  campaignId String    @map("campaign_id") @db.Uuid
+  campaign   Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  chapterId  String?   @map("chapter_id") @db.Uuid
+  chapter    Chapter?  @relation(fields: [chapterId], references: [id])
+  content    String
+  source     String?
+  isTrue     Boolean?  @map("is_true")
+  notes      String?
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  @@index([campaignId])
+  @@map("rumors")
 }

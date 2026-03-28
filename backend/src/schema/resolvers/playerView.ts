@@ -36,7 +36,7 @@ export const playerViewResolvers = {
       })
       if (!campaign) throw new Error('Campaign not found or link is invalid')
 
-      const [sessions, items, factions, characters, resolvedDecisions, allChapters] = await Promise.all([
+      const [sessions, items, factions, characters, resolvedDecisions, allChapters, rumors] = await Promise.all([
         ctx.prisma.session.findMany({
           where: { campaignId: campaign.id, status: 'completed' },
           orderBy: { sessionNumber: 'asc' },
@@ -61,6 +61,11 @@ export const playerViewResolvers = {
         ctx.prisma.chapter.findMany({
           where: { campaignId: campaign.id },
           orderBy: { orderIndex: 'asc' },
+        }),
+        ctx.prisma.rumor.findMany({
+          where: { campaignId: campaign.id },
+          include: { chapter: { select: { name: true } } },
+          orderBy: { createdAt: 'asc' },
         }),
       ])
 
@@ -111,6 +116,11 @@ export const playerViewResolvers = {
           reputation: f.reputation,
           repMin: f.repMin,
           repMax: f.repMax,
+        })),
+        rumors: rumors.map((r) => ({
+          content: r.content,
+          source: r.source ?? null,
+          chapterName: r.chapter?.name ?? null,
         })),
         characters: characters.map((c) => ({
           name: c.name,

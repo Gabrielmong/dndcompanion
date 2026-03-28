@@ -11,6 +11,7 @@ const extensions = `
     dateOfBirth: Date
     avatarUrl: String
     googleLinked: Boolean!
+    emailVerified: Boolean!
     campaigns: [Campaign!]!
     createdAt: DateTime!
   }
@@ -27,11 +28,18 @@ const extensions = `
     items: [PlayerItem!]!
     factions: [PlayerFaction!]!
     characters: [PlayerCharacter!]!
+    rumors: [PlayerRumor!]!
     resolvedDecisions: [PlayerDecision!]!
     missedDecisions: [PlayerDecision!]!
     encounters: [PlayerEncounter!]!
     stats: CampaignStats!
     chapterLanes: [PlayerChapterLane!]!
+  }
+
+  type PlayerRumor {
+    content: String!
+    source: String
+    chapterName: String
   }
 
   type PlayerChapterLane {
@@ -326,6 +334,12 @@ const extensions = `
     linkGoogleAccount(idToken: String!): User!
     updateProfile(name: String, dateOfBirth: Date, avatarUrl: String): User!
     changePassword(currentPassword: String!, newPassword: String!): Boolean!
+    deleteAccount: Boolean!
+    requestPasswordReset(email: String!): Boolean!
+    resetPassword(token: String!, newPassword: String!): AuthPayload!
+    verifyEmail(token: String!): Boolean!
+    resendVerification: Boolean!
+    refreshToken: AuthPayload!
     logRoll(input: LogRollInput!): RollLog!
     upsertSessionTreasure(sessionId: ID!, campaignId: ID!, xpGained: Int!, goldGained: Int!): Boolean!
     upsertEncounterStat(encounterId: ID!, campaignId: ID!, totalRounds: Int, damageDealt: Int, damageTaken: Int, enemiesKilled: Int): Boolean!
@@ -443,4 +457,45 @@ const extensions = `
   }
 `
 
-export const typeDefs = [baseTypeDefs, extensions]
+const rumorExtensions = `
+  type Rumor {
+    id: ID!
+    campaignId: ID!
+    chapter: Chapter
+    content: String!
+    source: String
+    isTrue: Boolean
+    notes: String
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  input CreateRumorInput {
+    campaignId: ID!
+    chapterId: ID
+    content: String!
+    source: String
+    isTrue: Boolean
+    notes: String
+  }
+
+  input UpdateRumorInput {
+    chapterId: ID
+    content: String
+    source: String
+    isTrue: Boolean
+    notes: String
+  }
+
+  extend type Query {
+    rumors(campaignId: ID!): [Rumor!]!
+  }
+
+  extend type Mutation {
+    createRumor(input: CreateRumorInput!): Rumor!
+    updateRumor(id: ID!, input: UpdateRumorInput!): Rumor!
+    deleteRumor(id: ID!): Boolean!
+  }
+`
+
+export const typeDefs = [baseTypeDefs, extensions, rumorExtensions]

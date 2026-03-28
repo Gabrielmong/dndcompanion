@@ -4,6 +4,7 @@ import { WebSocketServer, WebSocket } from 'ws'
 import express from 'express'
 import cors from 'cors'
 import multer from 'multer'
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import { randomUUID } from 'crypto'
 import { ApolloServer } from '@apollo/server'
@@ -20,6 +21,42 @@ async function main() {
   await server.start()
 
   const app = express()
+
+  // ── Rate limiters ────────────────────────────────────────────────────────────
+
+  // Global: 300 req / 1 min per IP — basic protection for all endpoints
+  app.use(rateLimit({
+    windowMs: 60 * 1000,
+    max: 300,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many requests, please slow down.' },
+  }))
+
+  // Auth-sensitive GraphQL operations: 20 attempts / 15 min per IP
+  // Applied as Express middleware before GraphQL — inspects the operation name
+  const authOps = new Set(['Login', 'Register', 'RequestPasswordResetProfile', 'RequestPasswordReset', 'ResetPassword', 'GoogleLogin'])
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 20,
+    skipSuccessfulRequests: false,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => ipKeyGenerator(req.ip ?? ''),
+    message: { errors: [{ message: 'Too many attempts. Please try again in 15 minutes.' }] },
+  })
+  // Parse body early so we can inspect operationName for auth rate limiting
+  app.use('/graphql', express.json({ limit: '2mb' }), (req, res, next) => {
+    try {
+      const op: string = req.body?.operationName ?? ''
+      if (authOps.has(op)) return authLimiter(req, res, next)
+    } catch { /* ignore */ }
+    next()
+  })
+
+  // Transcription WebSocket: track active connections per IP (handled below at wss.on)
+  const transcribeConnections = new Map<string, number>()
+  const MAX_TRANSCRIBE_PER_IP = 3
 
   const corsOptions = cors<cors.CorsRequest>({
     origin: process.env.FRONTEND_URL || 'http://localhost:5173',
@@ -176,7 +213,6 @@ async function main() {
   app.use(
     '/graphql',
     corsOptions,
-    express.json(),
     expressMiddleware(server, {
       context: async ({ req }) => {
         const token = req.headers.authorization?.replace('Bearer ', '') ?? ''
@@ -196,6 +232,19 @@ async function main() {
   // Deepgram proxy WebSocket — browser sends audio, we forward to Deepgram and return transcripts
   const wss = new WebSocketServer({ server: httpServer, path: '/transcribe' })
   wss.on('connection', (browserWs, req) => {
+    // Rate-limit: max 3 concurrent transcription sessions per IP
+    const ip = req.socket.remoteAddress ?? 'unknown'
+    const current = transcribeConnections.get(ip) ?? 0
+    if (current >= MAX_TRANSCRIBE_PER_IP) {
+      browserWs.close(1008, 'Too many transcription sessions from this IP')
+      return
+    }
+    transcribeConnections.set(ip, current + 1)
+    browserWs.once('close', () => {
+      const n = (transcribeConnections.get(ip) ?? 1) - 1
+      if (n <= 0) transcribeConnections.delete(ip)
+      else transcribeConnections.set(ip, n)
+    })
     const lang = new URL(req.url ?? '', 'http://x').searchParams.get('lang') ?? 'es'
     const dgWs = new WebSocket(
       `wss://api.deepgram.com/v1/listen?model=nova-2&language=${lang}&diarize=true&punctuate=true&interim_results=true&vad_events=true&endpointing=1000&encoding=linear16&sample_rate=16000`,

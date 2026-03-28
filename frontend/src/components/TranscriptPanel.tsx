@@ -45,13 +45,26 @@ export default function TranscriptPanel() {
 
   const speakerOptions = [`${dmName} (DM)`, ...campaignCharacters]
 
+  const [showConsentDialog, setShowConsentDialog] = useState(false)
+  const CONSENT_KEY = 'lorestone_recording_consent_v1'
+
   const handleToggleRecording = async () => {
     if (!activeSessionId) return
     if (isRecording) {
       recordingService.stop(activeSessionId)
     } else {
-      await recordingService.start(activeSessionId, language)
+      if (!localStorage.getItem(CONSENT_KEY)) {
+        setShowConsentDialog(true)
+      } else {
+        await recordingService.start(activeSessionId, language)
+      }
     }
+  }
+
+  const handleConsentAccept = async () => {
+    localStorage.setItem(CONSENT_KEY, 'true')
+    setShowConsentDialog(false)
+    if (activeSessionId) await recordingService.start(activeSessionId, language)
   }
 
   const handleAssign = async (name: string) => {
@@ -112,6 +125,36 @@ export default function TranscriptPanel() {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 1 }}>
+
+      {/* Audio recording consent dialog — shown once before first recording */}
+      <Dialog open={showConsentDialog} onClose={() => setShowConsentDialog(false)} maxWidth="xs" fullWidth
+        PaperProps={{ sx: { bgcolor: '#111009', border: '1px solid rgba(200,164,74,0.25)', borderRadius: 2 } }}>
+        <DialogTitle sx={{ fontFamily: '"Cinzel", serif', color: '#c8a44a', fontSize: '1rem', pb: 0.5 }}>
+          Recording consent
+        </DialogTitle>
+        <DialogContent sx={{ pt: 1.5 }}>
+          <Typography sx={{ fontSize: '0.85rem', color: '#b4a48a', lineHeight: 1.7, mb: 1.5 }}>
+            Lorestone will record and transcribe audio from your microphone using <strong style={{ color: '#e6d8c0' }}>Deepgram</strong>, a third-party speech recognition service. Audio data is processed on Deepgram's servers and transcripts are stored in your campaign.
+          </Typography>
+          <Typography sx={{ fontSize: '0.85rem', color: '#b4a48a', lineHeight: 1.7, mb: 1.5 }}>
+            <strong style={{ color: '#e6d8c0' }}>All participants must consent to being recorded.</strong> Recording laws vary by country and jurisdiction — ensure everyone at the table has agreed before starting.
+          </Typography>
+          <Typography sx={{ fontSize: '0.78rem', color: '#786c5c', lineHeight: 1.6 }}>
+            By continuing, you confirm that all participants have been informed and consent to this recording session.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+          <Button size="small" onClick={() => setShowConsentDialog(false)}
+            sx={{ color: '#786c5c', fontSize: '0.78rem' }}>
+            Cancel
+          </Button>
+          <Button size="small" variant="contained" onClick={handleConsentAccept}
+            startIcon={<MicIcon sx={{ fontSize: 15 }} />}
+            sx={{ fontSize: '0.78rem', bgcolor: '#62a870', '&:hover': { bgcolor: '#4e9459' } }}>
+            Everyone consents — start recording
+          </Button>
+        </DialogActions>
+      </Dialog>
       {/* Header — single row on desktop, two rows on mobile */}
       {isMobile ? (
         <>

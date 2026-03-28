@@ -15,6 +15,10 @@ import AddIcon from '@mui/icons-material/Add'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
 import CheckIcon from '@mui/icons-material/Check'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
+import GroupsIcon from '@mui/icons-material/Groups'
+import MenuBookIcon from '@mui/icons-material/MenuBook'
 import { useCampaign } from '../context/campaign'
 import CharacterCard from '../components/CharacterCard'
 import DecisionCard from '../components/DecisionCard'
@@ -206,6 +210,67 @@ export default function Dashboard() {
       {/* Stats bar */}
       {statsData?.campaignStats && <CampaignStatsBar stats={statsData.campaignStats} />}
 
+      {/* Getting started checklist — shown until all three steps are complete */}
+      {(() => {
+        const hasChapter = chapters.length > 0
+        const hasCharacter = (campaign.characters?.length ?? 0) > 0
+        const hasSession = sessions.length > 0
+        if (hasChapter && hasCharacter && hasSession) return null
+        const steps = [
+          {
+            done: hasChapter,
+            label: 'Add a chapter',
+            desc: 'Organize your story into chapters or arcs.',
+            action: () => { setEditChapter(null); setChapterFormOpen(true) },
+            actionLabel: 'Add chapter',
+          },
+          {
+            done: hasCharacter,
+            label: 'Add players & NPCs',
+            desc: 'Track characters, HP, and stats in one place.',
+            action: () => navigate('/characters'),
+            actionLabel: 'Go to characters',
+          },
+          {
+            done: hasSession,
+            label: 'Start a session',
+            desc: 'Log your play sessions and run encounters.',
+            action: () => { setEditSession(null); setSessionFormOpen(true) },
+            actionLabel: 'Start session',
+          },
+        ]
+        return (
+          <Box component={motion.div} variants={slideUp} sx={{ mb: 3, p: 2.5, bgcolor: '#111009', borderRadius: 1.5, border: '1px solid rgba(200,164,74,0.15)' }}>
+            <Typography sx={{ fontFamily: '"Cinzel", serif', color: '#c8a44a', fontSize: '0.82rem', mb: 2, letterSpacing: 0.5 }}>
+              Getting started
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
+              {steps.map((s) => (
+                <Box key={s.label} sx={{ flex: 1, display: 'flex', gap: 1.5, alignItems: 'flex-start', opacity: s.done ? 0.45 : 1 }}>
+                  {s.done
+                    ? <CheckCircleIcon sx={{ color: '#62a870', fontSize: 18, mt: 0.15, flexShrink: 0 }} />
+                    : <RadioButtonUncheckedIcon sx={{ color: '#786c5c', fontSize: 18, mt: 0.15, flexShrink: 0 }} />}
+                  <Box sx={{ flex: 1 }}>
+                    <Typography sx={{ fontSize: '0.82rem', color: s.done ? '#786c5c' : '#e6d8c0', mb: 0.25, textDecoration: s.done ? 'line-through' : 'none' }}>
+                      {s.label}
+                    </Typography>
+                    {!s.done && (
+                      <>
+                        <Typography sx={{ fontSize: '0.75rem', color: '#4a4035', mb: 0.75, lineHeight: 1.5 }}>{s.desc}</Typography>
+                        <Button size="small" variant="outlined" onClick={s.action}
+                          sx={{ fontSize: '0.72rem', py: 0.25, px: 1, color: '#c8a44a', borderColor: 'rgba(200,164,74,0.3)', '&:hover': { borderColor: 'rgba(200,164,74,0.6)' } }}>
+                          {s.actionLabel}
+                        </Button>
+                      </>
+                    )}
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        )
+      })()}
+
       <Grid container spacing={3}>
         {/* Left column: Chapters + Sessions */}
         <Grid item xs={12} md={4}>
@@ -270,7 +335,17 @@ export default function Dashboard() {
                 </motion.div>
               ))}
               {chapters.length === 0 && (
-                <Typography sx={{ color: '#786c5c', fontSize: '0.82rem', textAlign: 'center', py: 2 }}>No chapters yet.</Typography>
+                <Box sx={{ textAlign: 'center', py: 3, px: 2, border: '1px dashed rgba(120,108,92,0.2)', borderRadius: 1 }}>
+                  <MenuBookIcon sx={{ fontSize: 24, color: '#3a332a', mb: 0.75 }} />
+                  <Typography sx={{ color: '#786c5c', fontSize: '0.82rem', mb: 1.5 }}>
+                    Chapters help you organize your campaign into story arcs.
+                  </Typography>
+                  <Button size="small" variant="outlined" startIcon={<AddIcon />}
+                    onClick={() => { setEditChapter(null); setChapterFormOpen(true) }}
+                    sx={{ fontSize: '0.75rem', color: '#c8a44a', borderColor: 'rgba(200,164,74,0.3)' }}>
+                    Add first chapter
+                  </Button>
+                </Box>
               )}
             </List>
           </Box>
@@ -323,7 +398,17 @@ export default function Dashboard() {
                 </motion.div>
               ))}
               {sessions.length === 0 && (
-                <Typography sx={{ color: '#786c5c', fontSize: '0.82rem', textAlign: 'center', py: 2 }}>No sessions yet.</Typography>
+                <Box sx={{ textAlign: 'center', py: 3, px: 2, border: '1px dashed rgba(120,108,92,0.2)', borderRadius: 1 }}>
+                  <PlayArrowIcon sx={{ fontSize: 24, color: '#3a332a', mb: 0.75 }} />
+                  <Typography sx={{ color: '#786c5c', fontSize: '0.82rem', mb: 1.5 }}>
+                    Log your play sessions, track events, and run encounters.
+                  </Typography>
+                  <Button size="small" variant="outlined" startIcon={<AddIcon />}
+                    onClick={() => { setEditSession(null); setSessionFormOpen(true) }}
+                    sx={{ fontSize: '0.75rem', color: '#c8a44a', borderColor: 'rgba(200,164,74,0.3)' }}>
+                    Start first session
+                  </Button>
+                </Box>
               )}
             </List>
           </Box>
@@ -409,6 +494,21 @@ export default function Dashboard() {
                   <CharacterCard character={c} />
                 </Grid>
               ))}
+              {activeChars.length === 0 && (
+                <Grid item xs={12}>
+                  <Box sx={{ textAlign: 'center', py: 3, px: 2, border: '1px dashed rgba(120,108,92,0.2)', borderRadius: 1 }}>
+                    <GroupsIcon sx={{ fontSize: 24, color: '#3a332a', mb: 0.75 }} />
+                    <Typography sx={{ color: '#786c5c', fontSize: '0.82rem', mb: 1.5 }}>
+                      Track HP, stats, and notes for every player and NPC.
+                    </Typography>
+                    <Button size="small" variant="outlined" startIcon={<AddIcon />}
+                      onClick={() => navigate('/characters')}
+                      sx={{ fontSize: '0.75rem', color: '#c8a44a', borderColor: 'rgba(200,164,74,0.3)' }}>
+                      Add characters
+                    </Button>
+                  </Box>
+                </Grid>
+              )}
             </Grid>
           </Box>
 

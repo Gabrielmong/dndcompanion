@@ -33,6 +33,7 @@ import MapIcon from '@mui/icons-material/Map'
 import HistoryIcon from '@mui/icons-material/History'
 import BarChartIcon from '@mui/icons-material/BarChart'
 import StorefrontIcon from '@mui/icons-material/Storefront'
+import ForumIcon from '@mui/icons-material/Forum'
 import { useEffect } from 'react'
 import { useQuery, gql } from '@apollo/client'
 import { useAuthStore } from '../store/auth'
@@ -79,6 +80,7 @@ const navItems = [
   { to: '/merchants', label: 'Merchants', icon: <StorefrontIcon fontSize="small" /> },
   { to: '/missions', label: 'Missions', icon: <MapIcon fontSize="small" /> },
   { to: '/players', label: 'Players', icon: <CasinoIcon fontSize="small" /> },
+  { to: '/rumors', label: 'Rumors', icon: <ForumIcon fontSize="small" /> },
   { to: '/sessions', label: 'Sessions', icon: <HistoryIcon fontSize="small" /> },
   { to: '/wiki', label: 'Wiki', icon: <MenuBookIcon fontSize="small" /> },
   { to: '/analytics', label: 'Analytics', icon: <BarChartIcon fontSize="small" /> },

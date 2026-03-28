@@ -76,7 +76,7 @@ Nothing is shared unless the DM explicitly publishes it.
 - **NPC tracker** — structured view of NPCs: faction, relationship to party, last seen location, status (alive/dead/missing). Currently NPCs live in Characters but have no dedicated relationship/location tracking.
 - **Calendar / in-world timeline** — in-world date tracking, session dates on a campaign timeline, upcoming events pinned to dates
 - **Session prep checklist** — DM builds a list before each session, checks off during play
-- **Map annotations** — pin locations on uploaded maps, link pins to wiki pages, missions, or NPCs
+- ~~**Map annotations** — pin locations on uploaded maps, link pins to wiki pages, missions, or NPCs~~
 
 ### Session quality
 - **Recap generator** — summarize transcript segments into a publishable player recap via Claude API
@@ -126,25 +126,25 @@ Nothing is shared unless the DM explicitly publishes it.
 ## Pre-Launch Checklist
 
 ### Authentication
-- Password reset flow (email link)
-- Email verification on signup
+- ~~Password reset flow (email link)~~
+- ~~Email verification on signup~~
 - ~~OAuth — Google login to reduce signup friction~~
-- Session expiry & refresh token handling
+- ~~Session expiry & refresh token handling~~
 
 ### Email (transactional)
-- Provider: **Resend** or **Postmark** — good deliverability, developer-friendly
+- ~~Provider: **Resend** or **Postmark** — good deliverability, developer-friendly~~
 - Emails needed: welcome, password reset, email verification, demo expiry warning (2 weeks out), session recap published (player portal), payment failed
 - Without this the invite system and payment flows don't work
 
 ### Onboarding
-- New user lands on empty dashboard — needs guidance or they churn immediately
-- Options: sample campaign pre-loaded, setup wizard (name your campaign, invite players), first-visit tooltips
+- ~~New user lands on empty dashboard — needs guidance or they churn immediately~~
+- ~~Options: sample campaign pre-loaded, setup wizard (name your campaign, invite players), first-visit tooltips~~
 - The first 10 minutes decide if they come back
 
 ### Rate limiting
-- Auth routes — prevent brute-force login attempts
-- Transcription endpoint — prevent someone running up your Deepgram bill
-- API globally — basic protection before going public
+- ~~Auth routes — prevent brute-force login attempts~~
+- ~~Transcription endpoint — prevent someone running up your Deepgram bill~~
+- ~~API globally — basic protection before going public~~
 
 ### Monitoring & error tracking
 - **Sentry** — catches frontend and backend errors in real time, free tier is generous
@@ -157,10 +157,10 @@ Nothing is shared unless the DM explicitly publishes it.
 - Consider periodic exports to Cloudflare R2 as a secondary backup
 
 ### Domain & branding
-- **Name: Lorestone** — evocative, fantasy feel, not D&D-specific, works across any TTRPG system
-- **Domain: `lorestone.app`** — purchased, point nameservers to Cloudflare immediately
-- Cloudflare already handles DNS — straightforward to set up
-- Landing page: what the product is, who it's for, pricing, signup CTA
+- ~~**Name: Lorestone** — evocative, fantasy feel, not D&D-specific, works across any TTRPG system~~
+- ~~**Domain: `lorestone.app`** — purchased, point nameservers to Cloudflare immediately~~
+- ~~Cloudflare already handles DNS — straightforward to set up~~
+- ~~Landing page: what the product is, who it's for, pricing, signup CTA~~
 
 ### PWA (Progressive Web App)
 - DMs often run sessions on iPad or tablet at the table
@@ -188,16 +188,16 @@ Nothing is shared unless the DM explicitly publishes it.
 - Both are solid choices — Railway scales without config, Cloudflare R2 has no egress fees which keeps storage costs low
 
 ### Must-haves before launch
-- **Privacy Policy** — what data is collected (recordings, transcripts, campaign content), retention period, deletion on request
-- **Terms of Service** — usage rules, what you do with recording data, liability disclaimer
-- **Audio consent disclaimer** — surface in the UI before any recording starts: *"Ensure all participants consent to being recorded. Laws vary by jurisdiction."* California and several other states require all-party consent for recorded conversations
-- **Deepgram ToS review** — confirm commercial usage allows storing processed transcripts in your own DB long-term
+- ~~**Privacy Policy** — what data is collected (recordings, transcripts, campaign content), retention period, deletion on request~~
+- ~~**Terms of Service** — usage rules, what you do with recording data, liability disclaimer~~
+- ~~**Audio consent disclaimer** — surface in the UI before any recording starts: *"Ensure all participants consent to being recorded. Laws vary by jurisdiction."* California and several other states require all-party consent for recorded conversations~~
+- ~~**Deepgram ToS review** — confirm commercial usage allows storing processed transcripts in your own DB long-term~~
 
 ### D&D Beyond / Wizards of the Coast
-- Don't reproduce their IP (rules, spells, monster stat blocks) — only sync data the user owns
-- Frame D&D Beyond sync as "import your own data", not an official integration
-- Avoid the word "integration" — use "import" or "sync"
-- WotC actively pursues products that redistribute their content; tools that manage user-owned data are generally safe
+- ~~Don't reproduce their IP (rules, spells, monster stat blocks) — only sync data the user owns~~
+- ~~Frame D&D Beyond sync as "import your own data", not an official integration~~
+- ~~Avoid the word "integration" — use "import" or "sync"~~
+- ~~WotC actively pursues products that redistribute their content; tools that manage user-owned data are generally safe~~
 
 ### GDPR / Privacy
 - If any EU users sign up, session recordings and transcripts are sensitive personal data
@@ -205,8 +205,8 @@ Nothing is shared unless the DM explicitly publishes it.
 - Low risk early on but worth designing deletion flows into the data model now
 
 ### Notion
-- Using Notion MCP internally for seeding is fine — it's a dev tool, not a product feature
-- No risk as long as you're not exposing other users' Notion data
+- ~~Using Notion MCP internally for seeding is fine — it's a dev tool, not a product feature~~
+- ~~No risk as long as you're not exposing other users' Notion data~~
 
 ### Cost controls (related to legal exposure)
 - Cap recording hours per month on free/demo tiers to limit Deepgram costs and liability surface

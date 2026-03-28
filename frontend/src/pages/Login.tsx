@@ -128,6 +128,11 @@ export default function Login() {
             >
               {loading ? <CircularProgress size={20} /> : 'Enter the table'}
             </Button>
+            <Typography variant="body2" sx={{ textAlign: 'right', mt: 1, fontSize: '0.78rem' }}>
+              <Link to="/forgot-password" style={{ color: '#786c5c', textDecoration: 'none' }}>
+                Forgot password?
+              </Link>
+            </Typography>
           </Box>
 
           <Divider sx={{ my: 2, borderColor: 'rgba(200,164,74,0.15)', fontSize: '0.75rem', color: '#4a4035' }}>or</Divider>
@@ -153,6 +158,10 @@ export default function Login() {
             <Link to="/landing" style={{ color: '#4a4035', textDecoration: 'none' }}>
               ← Back to home
             </Link>
+          </Typography>
+          <Typography variant="body2" sx={{ textAlign: 'center', mt: 2, fontSize: '0.72rem', color: '#3a332a' }}>
+            <Link to="/privacy" style={{ color: '#3a332a', textDecoration: 'none', marginRight: 12 }}>Privacy</Link>
+            <Link to="/terms" style={{ color: '#3a332a', textDecoration: 'none' }}>Terms</Link>
           </Typography>
         </CardContent>
       </Card>

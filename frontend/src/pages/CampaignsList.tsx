@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, gql } from '@apollo/client'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { slideUp, staggerContainer, fadeIn } from '../utils/motion'
 import {
@@ -16,6 +16,7 @@ import { useAuthStore } from '../store/auth'
 import { useCampaign } from '../context/campaign'
 import CampaignFormDialog from '../components/CampaignFormDialog'
 import ConfirmDeleteDialog from '../components/ConfirmDeleteDialog'
+import WelcomeWizard from '../components/WelcomeWizard'
 
 const MY_CAMPAIGNS = gql`
   query MyCampaigns {
@@ -87,9 +88,11 @@ export default function CampaignsList() {
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 5, flexWrap: 'wrap', gap: 1.5 }}>
         <Box>
-          <Typography variant="h3" sx={{ fontFamily: '"Cinzel", serif', color: '#c8a44a', mb: 0.5, fontSize: { xs: '1.8rem', sm: '3rem' } }}>
-            Lorestone
-          </Typography>
+          <Link to="/landing" style={{ textDecoration: 'none' }}>
+            <Typography variant="h3" sx={{ fontFamily: '"Cinzel", serif', color: '#c8a44a', mb: 0.5, fontSize: { xs: '1.8rem', sm: '3rem' } }}>
+              Lorestone
+            </Typography>
+          </Link>
           {user && (
             <Typography sx={{ color: '#786c5c', fontSize: '0.9rem' }}>
               Welcome back, {user.name}
@@ -131,14 +134,11 @@ export default function CampaignsList() {
       )}
       {error && <Alert severity="error">{error.message}</Alert>}
 
-      {!loading && campaigns.length === 0 && (
-        <Box sx={{ textAlign: 'center', pt: 8 }}>
-          <Typography sx={{ color: '#786c5c', mb: 2 }}>No campaigns yet.</Typography>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditCampaign(null); setFormOpen(true) }}>
-            Create your first campaign
-          </Button>
-        </Box>
-      )}
+      <WelcomeWizard
+        open={!loading && campaigns.length === 0}
+        userName={user?.name ?? 'adventurer'}
+        onCreated={(id, name) => handleSaved(id)}
+      />
 
       <Grid container spacing={{ xs: 1.5, sm: 2 }} component={motion.div} variants={staggerContainer} initial="hidden" animate="visible">
         {campaigns.map((c: { id: string; name: string; system?: string | null; yearInGame?: string | null; playerCount?: number | null; description?: string | null; activeChapter?: { name: string } | null }) => (

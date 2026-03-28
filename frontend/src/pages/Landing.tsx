@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import PublicFooter from '../components/PublicFooter'
 import { useAuthStore } from '../store/auth'
 import { motion } from 'framer-motion'
 import { fadeIn, slideUp, staggerContainer } from '../utils/motion'
@@ -1044,7 +1045,7 @@ export default function Landing() {
       <Divider sx={{ borderColor: 'rgba(120,108,92,0.15)', maxWidth: 1100, mx: 'auto' }} />
 
       {/* Decision graph section */}
-      <Box sx={{ px: { xs: 2, md: 6 }, py: 8, bgcolor: '#0d0b08', borderTop: '1px solid rgba(120,108,92,0.12)', borderBottom: '1px solid rgba(120,108,92,0.12)' }}>
+      <Box id="decisions" sx={{ px: { xs: 2, md: 6 }, py: 8, bgcolor: '#0d0b08', borderTop: '1px solid rgba(120,108,92,0.12)', borderBottom: '1px solid rgba(120,108,92,0.12)' }}>
         <Box sx={{ maxWidth: 1100, mx: 'auto' }}>
           <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', mb: 3, flexWrap: 'wrap', gap: 1 }}>
             <Box>
@@ -1069,19 +1070,19 @@ export default function Landing() {
       </Box>
 
       {/* Wiki showcase */}
-      <MockWikiShowcase />
+      <Box id="wiki"><MockWikiShowcase /></Box>
 
       {/* Dice roller showcase */}
-      <MockDiceShowcase />
+      <Box id="dice"><MockDiceShowcase /></Box>
 
       {/* Player view showcase */}
-      <MockPlayerView />
+      <Box id="player-view"><MockPlayerView /></Box>
 
       {/* Transcript + AI showcase */}
-      <MockTranscriptShowcase />
+      <Box id="transcription"><MockTranscriptShowcase /></Box>
 
       {/* Features grid */}
-      <Box sx={{ px: { xs: 3, md: 6 }, py: 8, overflow: 'hidden' }}>
+      <Box id="features" sx={{ px: { xs: 3, md: 6 }, py: 8, overflow: 'hidden' }}>
         <Typography variant="h4" sx={{ fontFamily: '"Cinzel", serif', color: '#e6d8c0', textAlign: 'center', mb: 1, fontSize: { xs: '1.4rem', md: '1.8rem' } }}>
           Everything the DM Needs
         </Typography>
@@ -1120,15 +1121,7 @@ export default function Landing() {
         </Button>
       </Box>
 
-      {/* Footer */}
-      <Box sx={{ borderTop: '1px solid rgba(120,108,92,0.1)', px: { xs: 2, md: 6 }, py: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
-        <Typography sx={{ fontFamily: '"Cinzel", serif', color: '#3a332a', fontSize: '0.85rem' }}>
-          Lorestone
-        </Typography>
-        <Typography sx={{ color: '#3a332a', fontSize: '0.75rem', fontFamily: '"JetBrains Mono", monospace' }}>
-          Built for DMs, by a DM.
-        </Typography>
-      </Box>
+      <PublicFooter />
     </Box>
   )
 }

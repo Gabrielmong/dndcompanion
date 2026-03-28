@@ -33,6 +33,7 @@ const PLAYER_VIEW = gql`
       items { name description type }
       factions { name reputation repMin repMax }
       characters { name description status role portraitUrl }
+      rumors { content source chapterName }
       stats {
         totalPlayMinutes sessionsPlayed totalEncounters encountersWon
         npcsMet decisionsResolved enemiesKilled itemsCollected
@@ -86,7 +87,7 @@ export default function PlayerView() {
   const view = data?.playerView
   if (!view) return null
 
-  const { campaign, sessions, items, factions, resolvedDecisions, missedDecisions, encounters, stats, chapterLanes } = view
+  const { campaign, sessions, items, factions, rumors, resolvedDecisions, missedDecisions, encounters, stats, chapterLanes } = view
   const characters = (view.characters as Array<{ name: string; description?: string | null; status: string; role: string; portraitUrl?: string | null }>)
     .filter((c) => c.role !== 'MONSTER')
 
@@ -188,6 +189,32 @@ export default function PlayerView() {
                   </Grid>
                 ))}
               </Grid>
+            </Grid>
+          )}
+
+          {/* Rumors & Whispers */}
+          {rumors.length > 0 && (
+            <Grid item xs={12}>
+              <Typography variant="h5" sx={{ mb: 2 }}>Rumors & Whispers</Typography>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }, gap: 1.5 }}>
+                {(rumors as Array<{ content: string; source?: string | null; chapterName?: string | null }>).map((r, i) => (
+                  <Box key={i} sx={{ p: 1.75, bgcolor: '#111009', borderRadius: 1, border: '1px solid rgba(120,108,92,0.2)', borderLeft: '3px solid rgba(200,164,74,0.3)' }}>
+                    <Typography sx={{ fontSize: '0.88rem', color: '#e6d8c0', lineHeight: 1.6, fontStyle: 'italic', mb: r.source || r.chapterName ? 1 : 0 }}>
+                      "{r.content}"
+                    </Typography>
+                    {(r.source || r.chapterName) && (
+                      <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+                        {r.source && (
+                          <Chip label={`Source: ${r.source}`} size="small" sx={{ height: 18, fontSize: '0.68rem', color: '#b4a48a', bgcolor: 'rgba(180,164,138,0.08)', border: '1px solid rgba(180,164,138,0.15)' }} />
+                        )}
+                        {r.chapterName && (
+                          <Chip label={r.chapterName} size="small" sx={{ height: 18, fontSize: '0.68rem', color: '#786c5c', bgcolor: 'rgba(120,108,92,0.08)', border: '1px solid rgba(120,108,92,0.15)' }} />
+                        )}
+                      </Box>
+                    )}
+                  </Box>
+                ))}
+              </Box>
             </Grid>
           )}
 

@@ -14,6 +14,11 @@ import GoogleLinkedModal from './components/GoogleLinkedModal'
 
 import Login from './pages/Login'
 import Register from './pages/Register'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
+import VerifyEmail from './pages/VerifyEmail'
+import PrivacyPolicy from './pages/PrivacyPolicy'
+import TermsOfService from './pages/TermsOfService'
 import CampaignsList from './pages/CampaignsList'
 import Dashboard from './pages/Dashboard'
 import Characters from './pages/Characters'
@@ -35,6 +40,7 @@ import Missions from './pages/Missions'
 import Chapters from './pages/Chapters'
 import Sessions from './pages/Sessions'
 import Analytics from './pages/Analytics'
+import RumorBoard from './pages/RumorBoard'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -50,6 +56,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               {/* Public routes */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/terms" element={<TermsOfService />} />
               <Route path="/play/:shareToken" element={<PlayerView />} />
 
               {/* Protected DM routes */}
@@ -77,6 +88,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                   <Route path="/chapters" element={<Chapters />} />
                   <Route path="/sessions" element={<Sessions />} />
                   <Route path="/analytics" element={<Analytics />} />
+                  <Route path="/rumors" element={<RumorBoard />} />
                 </Route>
               </Route>
 

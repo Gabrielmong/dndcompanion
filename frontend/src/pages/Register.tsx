@@ -153,6 +153,12 @@ export default function Register() {
               Sign in
             </Link>
           </Typography>
+          <Typography variant="body2" sx={{ textAlign: 'center', mt: 1.5, color: '#4a4035', fontSize: '0.72rem' }}>
+            By creating an account you agree to our{' '}
+            <Link to="/terms" style={{ color: '#786c5c', textDecoration: 'none' }}>Terms</Link>
+            {' '}and{' '}
+            <Link to="/privacy" style={{ color: '#786c5c', textDecoration: 'none' }}>Privacy Policy</Link>
+          </Typography>
         </CardContent>
       </Card>
     </Box>

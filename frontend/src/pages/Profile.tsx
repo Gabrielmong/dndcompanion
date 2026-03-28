@@ -6,6 +6,7 @@ import { fadeIn, slideUp } from '../utils/motion'
 import {
   Box, Typography, TextField, Button, Alert, Divider,
   CircularProgress, IconButton, Tooltip, Paper, Chip,
+  Dialog, DialogTitle, DialogContent, DialogActions,
 } from '@mui/material'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import EditIcon from '@mui/icons-material/Edit'
@@ -15,6 +16,8 @@ import LockIcon from '@mui/icons-material/Lock'
 import PersonIcon from '@mui/icons-material/Person'
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera'
 import LinkIcon from '@mui/icons-material/Link'
+import MailOutlineIcon from '@mui/icons-material/MailOutline'
+import VerifiedIcon from '@mui/icons-material/Verified'
 import { GoogleLogin } from '@react-oauth/google'
 import { useAuthStore } from '../store/auth'
 
@@ -22,7 +25,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000'
 
 const ME = gql`
   query MeProfile {
-    me { id email name dateOfBirth avatarUrl googleLinked createdAt }
+    me { id email name dateOfBirth avatarUrl googleLinked emailVerified createdAt }
   }
 `
 
@@ -34,6 +37,10 @@ const LINK_GOOGLE = gql`
   }
 `
 
+const RESEND_VERIFICATION = gql`
+  mutation ResendVerification { resendVerification }
+`
+
 const UPDATE_PROFILE = gql`
   mutation UpdateProfile($name: String, $dateOfBirth: Date, $avatarUrl: String) {
     updateProfile(name: $name, dateOfBirth: $dateOfBirth, avatarUrl: $avatarUrl) {
@@ -42,10 +49,14 @@ const UPDATE_PROFILE = gql`
   }
 `
 
-const CHANGE_PASSWORD = gql`
-  mutation ChangePassword($currentPassword: String!, $newPassword: String!) {
-    changePassword(currentPassword: $currentPassword, newPassword: $newPassword)
+const REQUEST_RESET = gql`
+  mutation RequestPasswordResetProfile($email: String!) {
+    requestPasswordReset(email: $email)
   }
+`
+
+const DELETE_ACCOUNT = gql`
+  mutation DeleteAccount { deleteAccount }
 `
 
 function FieldRow({
@@ -127,8 +138,13 @@ export default function Profile() {
 
   const { data, loading, refetch } = useQuery(ME)
   const [updateProfile, { loading: saving }] = useMutation(UPDATE_PROFILE)
-  const [changePassword, { loading: changingPw }] = useMutation(CHANGE_PASSWORD)
+  const [requestReset, { loading: resetLoading }] = useMutation(REQUEST_RESET)
+  const [deleteAccount, { loading: deleting }] = useMutation(DELETE_ACCOUNT)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
   const [linkGoogle] = useMutation(LINK_GOOGLE)
+  const [resendVerification, { loading: resendLoading }] = useMutation(RESEND_VERIFICATION)
+  const [resendSent, setResendSent] = useState(false)
 
   const [linkError, setLinkError] = useState('')
   const [linkSuccess, setLinkSuccess] = useState('')
@@ -143,12 +159,7 @@ export default function Profile() {
   const [profileError, setProfileError] = useState('')
   const [profileSuccess, setProfileSuccess] = useState('')
 
-  // Password state
-  const [currentPw, setCurrentPw] = useState('')
-  const [newPw, setNewPw] = useState('')
-  const [confirmPw, setConfirmPw] = useState('')
-  const [pwError, setPwError] = useState('')
-  const [pwSuccess, setPwSuccess] = useState('')
+  const [resetSent, setResetSent] = useState(false)
 
   const me = data?.me
 
@@ -178,20 +189,6 @@ export default function Profile() {
       refetch()
     } catch (e: unknown) {
       setProfileError(e instanceof Error ? e.message : 'Failed to update')
-    }
-  }
-
-  const handleChangePassword = async () => {
-    setPwError('')
-    setPwSuccess('')
-    if (newPw !== confirmPw) { setPwError('Passwords do not match.'); return }
-    if (newPw.length < 8) { setPwError('Password must be at least 8 characters.'); return }
-    try {
-      await changePassword({ variables: { currentPassword: currentPw, newPassword: newPw } })
-      setPwSuccess('Password changed successfully.')
-      setCurrentPw(''); setNewPw(''); setConfirmPw('')
-    } catch (e: unknown) {
-      setPwError(e instanceof Error ? e.message : 'Failed to change password')
     }
   }
 
@@ -230,9 +227,9 @@ export default function Profile() {
       variants={fadeIn}
       initial="hidden"
       animate="visible"
-      sx={{ minHeight: '100svh', bgcolor: '#0b0906', p: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+      sx={{ minHeight: '100svh', bgcolor: '#0b0906', p: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', }}
     >
-      <Box sx={{ width: '100%', maxWidth: 560 }}>
+      <Box sx={{ width: '100%', maxWidth: 560,  }}>
         {/* Back */}
         <Box sx={{ mb: 3 }}>
           <Tooltip title="Back to campaigns">
@@ -247,11 +244,11 @@ export default function Profile() {
             <CircularProgress sx={{ color: '#c8a44a' }} />
           </Box>
         ) : (
-          <Box component={motion.div} variants={slideUp}>
+          <Box component={motion.div} variants={slideUp} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             {/* Profile info section */}
             <Paper
               elevation={0}
-              sx={{ p: 3, mb: 2.5, bgcolor: '#111009', border: '1px solid rgba(120,108,92,0.25)', borderRadius: 2 }}
+              sx={{ p: 3, bgcolor: '#111009', border: '1px solid rgba(120,108,92,0.25)', borderRadius: 2 }}
             >
               <input ref={avatarInputRef} type="file" accept="image/*" style={{ display: 'none' }}
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) handleAvatarUpload(f); e.target.value = '' }}
@@ -324,18 +321,6 @@ export default function Profile() {
               />
               <Divider sx={{ borderColor: 'rgba(120,108,92,0.15)' }} />
               <FieldRow
-                label="Email"
-                value={me?.email ?? ''}
-                editValue={''}
-                editing={false}
-                onEdit={() => {}}
-                onSave={() => {}}
-                onCancel={() => {}}
-                onChange={() => {}}
-                readOnly
-              />
-              <Divider sx={{ borderColor: 'rgba(120,108,92,0.15)' }} />
-              <FieldRow
                 label="Date of Birth"
                 value={dobDisplay}
                 editValue={editDob}
@@ -354,10 +339,57 @@ export default function Profile() {
               )}
             </Paper>
 
+            {/* Email verification section */}
+            <Paper
+              elevation={0}
+              sx={{ p: 3, bgcolor: '#111009', border: `1px solid ${me?.emailVerified ? 'rgba(98,168,112,0.25)' : 'rgba(200,164,74,0.3)'}`, borderRadius: 2 }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: '#1a160f', border: `1px solid ${me?.emailVerified ? 'rgba(98,168,112,0.3)' : 'rgba(200,164,74,0.3)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {me?.emailVerified
+                    ? <VerifiedIcon sx={{ color: '#62a870', fontSize: 18 }} />
+                    : <MailOutlineIcon sx={{ color: '#c8a44a', fontSize: 18 }} />
+                  }
+                </Box>
+                <Box>
+                  <Typography variant="h6" sx={{ fontFamily: '"Cinzel", serif', color: '#e6d8c0', fontSize: '1rem', lineHeight: 1 }}>
+                    Email
+                  </Typography>
+                  <Typography sx={{ fontSize: '0.75rem', color: '#786c5c', mt: 0.25 }}>{me?.email}</Typography>
+                </Box>
+                {me?.emailVerified
+                  ? <Chip label="Verified" size="small" sx={{ ml: 'auto', bgcolor: 'rgba(98,168,112,0.15)', color: '#62a870', border: '1px solid rgba(98,168,112,0.3)', fontSize: '0.7rem', height: 20 }} />
+                  : <Chip label="Unverified" size="small" sx={{ ml: 'auto', bgcolor: 'rgba(200,164,74,0.08)', color: '#c8a44a', border: '1px solid rgba(200,164,74,0.3)', fontSize: '0.7rem', height: 20 }} />
+                }
+              </Box>
+              {!me?.emailVerified && (
+                <>
+                  <Typography sx={{ fontSize: '0.82rem', color: '#786c5c', mb: 1.5, lineHeight: 1.5 }}>
+                    Verify your email address to ensure you can recover your account if needed.
+                  </Typography>
+                  {resendSent
+                    ? <Alert severity="success" sx={{ py: 0 }}>Verification email sent — check your inbox.</Alert>
+                    : (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        disabled={resendLoading}
+                        onClick={async () => { await resendVerification(); setResendSent(true) }}
+                        sx={{ fontSize: '0.78rem', borderColor: 'rgba(200,164,74,0.35)', color: '#c8a44a', '&:hover': { borderColor: '#c8a44a' } }}
+                      >
+                        {resendLoading ? <CircularProgress size={14} sx={{ mr: 1 }} /> : null}
+                        Resend verification email
+                      </Button>
+                    )
+                  }
+                </>
+              )}
+            </Paper>
+
             {/* Linked Accounts section */}
             <Paper
               elevation={0}
-              sx={{ p: 3, mb: 2.5, bgcolor: '#111009', border: '1px solid rgba(120,108,92,0.25)', borderRadius: 2 }}
+              sx={{ p: 3, bgcolor: '#111009', border: '1px solid rgba(120,108,92,0.25)', borderRadius: 2 }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2.5 }}>
                 <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: '#1a160f', border: '1px solid rgba(200,164,74,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -397,7 +429,7 @@ export default function Profile() {
               elevation={0}
               sx={{ p: 3, bgcolor: '#111009', border: '1px solid rgba(120,108,92,0.25)', borderRadius: 2 }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
                 <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: '#1a160f', border: '1px solid rgba(184,72,72,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <LockIcon sx={{ color: '#b84848', fontSize: 18 }} />
                 </Box>
@@ -406,50 +438,79 @@ export default function Profile() {
                 </Typography>
               </Box>
 
-              <Typography sx={{ fontSize: '0.82rem', color: '#786c5c', mb: 2 }}>
-                Change your password. You'll need your current password to confirm.
-              </Typography>
-
-              {pwError && <Alert severity="error" sx={{ mb: 1.5, py: 0 }}>{pwError}</Alert>}
-              {pwSuccess && <Alert severity="success" sx={{ mb: 1.5, py: 0 }}>{pwSuccess}</Alert>}
-
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                <TextField
-                  label="Current Password"
-                  type="password"
-                  value={currentPw}
-                  onChange={(e) => setCurrentPw(e.target.value)}
-                  size="small"
-                  fullWidth
-                />
-                <TextField
-                  label="New Password"
-                  type="password"
-                  value={newPw}
-                  onChange={(e) => setNewPw(e.target.value)}
-                  size="small"
-                  fullWidth
-                  helperText="At least 8 characters"
-                />
-                <TextField
-                  label="Confirm New Password"
-                  type="password"
-                  value={confirmPw}
-                  onChange={(e) => setConfirmPw(e.target.value)}
-                  size="small"
-                  fullWidth
-                />
-                <Button
-                  variant="outlined"
-                  onClick={handleChangePassword}
-                  disabled={changingPw || !currentPw || !newPw || !confirmPw}
-                  size="small"
-                  sx={{ alignSelf: 'flex-start', borderColor: 'rgba(184,72,72,0.4)', color: '#b84848', '&:hover': { borderColor: '#b84848', bgcolor: 'rgba(184,72,72,0.08)' } }}
-                >
-                  {changingPw ? <CircularProgress size={14} sx={{ color: '#b84848' }} /> : 'Change Password'}
-                </Button>
-              </Box>
+              {resetSent ? (
+                <Alert severity="success" sx={{ py: 0 }}>Reset link sent — check your inbox.</Alert>
+              ) : (
+                <>
+                  <Typography sx={{ fontSize: '0.82rem', color: '#786c5c', mb: 2, lineHeight: 1.6 }}>
+                    We'll send a password reset link to <strong style={{ color: '#b4a48a' }}>{me?.email}</strong>. The link expires in 1 hour.
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    disabled={resetLoading}
+                    onClick={async () => { await requestReset({ variables: { email: me?.email } }); setResetSent(true) }}
+                    sx={{ borderColor: 'rgba(184,72,72,0.4)', color: '#b84848', fontSize: '0.78rem', '&:hover': { borderColor: '#b84848', bgcolor: 'rgba(184,72,72,0.08)' } }}
+                  >
+                    {resetLoading ? <CircularProgress size={14} sx={{ color: '#b84848', mr: 1 }} /> : null}
+                    Send password reset email
+                  </Button>
+                </>
+              )}
             </Paper>
+
+              <Divider sx={{ my: 3, borderColor: 'rgba(120,108,92,0.15)' }} />
+
+            {/* Danger zone */}
+            <Paper elevation={0} sx={{ p: 3, bgcolor: '#111009', border: '1px solid rgba(184,72,72,0.25)', borderRadius: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: '#1a160f', border: '1px solid rgba(184,72,72,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Typography sx={{ fontSize: '1rem' }}>⚠️</Typography>
+                </Box>
+                <Typography variant="h6" sx={{ fontFamily: '"Cinzel", serif', color: '#b84848', fontSize: '1rem' }}>
+                  Danger zone
+                </Typography>
+              </Box>
+              <Typography sx={{ fontSize: '0.82rem', color: '#786c5c', mb: 2, lineHeight: 1.6 }}>
+                Permanently delete your account and all associated data — campaigns, sessions, transcripts, characters, and items. This cannot be undone.
+              </Typography>
+              <Button size="small" variant="outlined" onClick={() => setShowDeleteConfirm(true)}
+                sx={{ borderColor: 'rgba(184,72,72,0.4)', color: '#b84848', fontSize: '0.78rem', '&:hover': { borderColor: '#b84848', bgcolor: 'rgba(184,72,72,0.08)' } }}>
+                Delete my account
+              </Button>
+            </Paper>
+
+            {/* Delete account confirmation dialog */}
+            <Dialog open={showDeleteConfirm} onClose={() => { setShowDeleteConfirm(false); setDeleteConfirmText('') }}
+              maxWidth="xs" fullWidth PaperProps={{ sx: { bgcolor: '#111009', border: '1px solid rgba(184,72,72,0.35)', borderRadius: 2 } }}>
+              <DialogTitle sx={{ fontFamily: '"Cinzel", serif', color: '#b84848', fontSize: '1rem' }}>
+                Delete account permanently?
+              </DialogTitle>
+              <DialogContent>
+                <Typography sx={{ fontSize: '0.85rem', color: '#b4a48a', mb: 2, lineHeight: 1.6 }}>
+                  All your campaigns, sessions, characters, transcripts and items will be permanently deleted. This action cannot be reversed.
+                </Typography>
+                <Typography sx={{ fontSize: '0.82rem', color: '#786c5c', mb: 1.5 }}>
+                  Type <strong style={{ color: '#e6d8c0' }}>DELETE</strong> to confirm:
+                </Typography>
+                <TextField fullWidth size="small" value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="DELETE" autoFocus />
+              </DialogContent>
+              <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+                <Button size="small" onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText('') }}
+                  sx={{ color: '#786c5c' }}>Cancel</Button>
+                <Button size="small" variant="contained" disabled={deleteConfirmText !== 'DELETE' || deleting}
+                  onClick={async () => {
+                    await deleteAccount()
+                    useAuthStore.getState().logout()
+                    window.location.href = '/login'
+                  }}
+                  sx={{ bgcolor: '#b84848', '&:hover': { bgcolor: '#d45f5f' }, '&:disabled': { bgcolor: 'rgba(184,72,72,0.3)' } }}>
+                  {deleting ? <CircularProgress size={14} sx={{ color: '#fff' }} /> : 'Delete permanently'}
+                </Button>
+              </DialogActions>
+            </Dialog>
+
           </Box>
         )}
       </Box>

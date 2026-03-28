@@ -15,6 +15,7 @@ import { diceSetResolvers } from './diceSet'
 import { analyticsResolvers } from './analytics'
 import { transcriptResolvers } from './transcript'
 import { merchantResolvers } from './merchant'
+import { rumorResolvers } from './rumor'
 
 export const resolvers = {
   DateTime: DateTimeResolver,
@@ -38,6 +39,7 @@ export const resolvers = {
     ...analyticsResolvers.Query,
     ...transcriptResolvers.Query,
     ...merchantResolvers.Query,
+    ...rumorResolvers.Query,
   },
 
   Mutation: {
@@ -55,6 +57,7 @@ export const resolvers = {
     ...analyticsResolvers.Mutation,
     ...transcriptResolvers.Mutation,
     ...merchantResolvers.Mutation,
+    ...rumorResolvers.Mutation,
   },
 
   Campaign: campaignResolvers.Campaign,
@@ -75,4 +78,5 @@ export const resolvers = {
   Encounter: encounterResolvers.Encounter,
   EncounterParticipant: encounterResolvers.EncounterParticipant,
   User: authResolvers.User,
+  Rumor: rumorResolvers.Rumor,
 }
